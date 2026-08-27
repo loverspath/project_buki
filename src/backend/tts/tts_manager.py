@@ -51,6 +51,18 @@ def enrich_gpt_sovits_text(text: str, emotion: str) -> Tuple[str, float]:
         speed = 1.08 # Stuttering, agitated cadence
         if not any(k in styled_text for k in ["앗", "바,"]):
             styled_text = f"앗, {styled_text}!"
+    elif emotion == "terrified":
+        speed = 1.16 # High pitch, shivering, panicked gasp
+        if not any(k in styled_text for k in ["히익", "으악", "꺅"]):
+            styled_text = f"히익, {styled_text}!"
+    elif emotion == "resigned":
+        speed = 0.78 # Very slow, low pitch, deep depressed sigh
+        if not styled_text.startswith("하아"):
+            styled_text = f"하아... {styled_text}"
+    elif emotion == "crying":
+        speed = 0.95 # Weeping, sobbing cadence
+        if not any(k in styled_text for k in ["흑", "훌쩍"]):
+            styled_text = f"흑... {styled_text}"
     elif emotion == "angry":
         speed = 1.12 # Fast, forceful, loud
     elif emotion in ["smug", "tease"]:
@@ -135,6 +147,21 @@ async def synthesize_smart_speech(
                 "놀리", "장난", "우후후", "쿠후후", "킥킥"
             ]):
                 target_emotion = "tease"
+            # Terrified / Panic / Fear
+            elif any(k in combined_context for k in [
+                "공포", "비명", "겁에 질", "사시나무", "떨며", "살려", "무서", "히익", "경악", "벌벌"
+            ]):
+                target_emotion = "terrified"
+            # Resigned / Low & Slow / Despair
+            elif any(k in combined_context for k in [
+                "체념", "낮은 목소리", "느린 목소리", "한숨", "절망", "무기력", "멍하니", "지친", "포기"
+            ]):
+                target_emotion = "resigned"
+            # Crying / Weeping
+            elif any(k in combined_context for k in [
+                "울먹", "눈물", "흐느끼", "훌쩍", "흑흑"
+            ]):
+                target_emotion = "crying"
             # Angry / Screaming
             elif any(k in combined_context for k in [
                 "화", "버럭", "소리치", "짜증", "인상", "노려보", "째려"
@@ -152,6 +179,10 @@ async def synthesize_smart_speech(
                 ref_wav = banks["tease"].get("ref_wav", ref_wav)
                 prompt_text = banks["tease"].get("prompt_text", prompt_text)
                 prompt_lang = banks["tease"].get("lang", prompt_lang)
+            elif target_emotion in ["terrified", "angry"] and "angry" in banks:
+                ref_wav = banks["angry"].get("ref_wav", ref_wav)
+                prompt_text = banks["angry"].get("prompt_text", prompt_text)
+                prompt_lang = banks["angry"].get("lang", prompt_lang)
 
         # Prosody & text phoneme enrichment
         enriched_text, speed = enrich_gpt_sovits_text(clean_text, target_emotion or "default")

@@ -73,7 +73,25 @@ def analyze_emotion_and_format_text(text: str, actions: List[str]) -> Tuple[str,
         exaggeration = 0.80
         processed_text = f"[laugh] {processed_text}"
 
-    # 7. Sigh / Tired
+    # 7. Terrified / Panic / Fear
+    elif any(k in combined_context for k in ["공포", "비명", "겁에 질", "사시나무", "떨며", "살려", "무서", "히익", "경악", "벌벌"]):
+        inferred_emotion = "terrified"
+        exaggeration = 0.98
+        processed_text = f"...히익...! {processed_text}"
+
+    # 8. Resigned / Low & Slow / Despair
+    elif any(k in combined_context for k in ["체념", "낮은 목소리", "느린 목소리", "절망", "무기력", "멍하니", "지친", "포기"]):
+        inferred_emotion = "resigned"
+        exaggeration = 0.82
+        processed_text = f"[sigh] ...하아... {processed_text}"
+
+    # 9. Crying / Weeping
+    elif any(k in combined_context for k in ["울먹", "눈물", "흐느끼", "훌쩍", "흑흑"]):
+        inferred_emotion = "crying"
+        exaggeration = 0.90
+        processed_text = f"...흑, {processed_text}"
+
+    # 10. Sigh / Tired
     elif any(k in combined_context for k in ["한숨", "하아", "하휴", "휴", "귀찮"]):
         inferred_emotion = "sigh"
         exaggeration = 0.75

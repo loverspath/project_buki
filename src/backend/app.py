@@ -85,12 +85,14 @@ class ChatStreamRequest(BaseModel):
     tts_engine: Optional[str] = "gpt_sovits"
     custom_system_prompt: Optional[str] = None
     nsfw_mode: Optional[bool] = False
+    acting_emotion: Optional[str] = "auto"
 
 class DirectTTSRequest(BaseModel):
     text: str
     persona_id: Optional[str] = "mesugaki"
     tts_engine: Optional[str] = "gpt_sovits"
     nsfw_mode: Optional[bool] = False
+    acting_emotion: Optional[str] = "auto"
 
 class ScriptParseRequest(BaseModel):
     script_text: str
@@ -103,6 +105,7 @@ class ScriptSegmentTTSRequest(BaseModel):
     context_narration: Optional[str] = ""
     tts_engine: Optional[str] = "gpt_sovits"
     nsfw_mode: Optional[bool] = False
+    acting_emotion: Optional[str] = "auto"
 
 # --- HELPER FUNCTIONS ---
 
@@ -231,7 +234,7 @@ async def direct_tts(req: DirectTTSRequest):
     if not speech_text:
         return {"audio_base64": "", "spoken_text": "", "actions": actions, "engine_used": "none"}
         
-    override_emo = "sensual" if req.nsfw_mode else None
+    override_emo = req.acting_emotion if (req.acting_emotion and req.acting_emotion not in ["auto", "default"]) else ("sensual" if req.nsfw_mode else None)
     audio_base64, engine_used = await synthesize_smart_speech(
         text=speech_text,
         persona_id=req.persona_id,
@@ -254,7 +257,7 @@ async def parse_script_endpoint(req: ScriptParseRequest):
 @app.post("/api/script/tts_segment")
 async def tts_script_segment(req: ScriptSegmentTTSRequest):
     persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
-    override_emo = "sensual" if req.nsfw_mode else (req.inferred_emotion if req.inferred_emotion != "default" else None)
+    override_emo = req.acting_emotion if (req.acting_emotion and req.acting_emotion not in ["auto", "default"]) else ("sensual" if req.nsfw_mode else (req.inferred_emotion if req.inferred_emotion != "default" else None))
     audio_base64, engine_used = await synthesize_smart_speech(
         text=req.dialogue,
         persona_id=req.persona_id,
@@ -278,10 +281,21 @@ async def chat_stream(req: ChatStreamRequest):
     model_to_use = req.model or "z-ai/glm-5.3-flash"
     system_prompt = req.custom_system_prompt or persona.get("system_prompt", "")
     tts_engine_pref = req.tts_engine or "gpt_sovits"
-    override_emo = "sensual" if req.nsfw_mode else None
+    override_emo = req.acting_emotion if (req.acting_emotion and req.acting_emotion not in ["auto", "default"]) else ("sensual" if req.nsfw_mode else None)
 
-    if req.nsfw_mode and system_prompt:
-        system_prompt += "\n[Sensual Voice Mode Active: 대화 시 살짝 달아오른 호흡 감탄사(...읏..., ...하아...)와 부끄러워하는 앙탈/귓속말 톤을 자연스럽게 섞어 대답할 것]"
+    style_prompts = {
+        "sensual": "\n[Acting Style: 살짝 달아오른 목소리와 부끄러운 앙탈/귓속말, 호흡 감탄사(...읏..., ...하아...)를 섞어 대답할 것]",
+        "terrified": "\n[Acting Style: 공포에 질려 벌벌 떨며, 사시나무처럼 떨리는 비명과 호흡 감탄사(히익...!, 으악...!)를 섞어 대답할 것]",
+        "resigned": "\n[Acting Style: 모든 것을 체념한 듯 낮고 느린 톤으로 깊은 한숨(...하아...)과 함께 무기력하게 대답할 것]",
+        "panting": "\n[Acting Style: 가쁜 숨을 헐떡이며(...하아, 하아...) 대답할 것]",
+        "flustered": "\n[Acting Style: 얼굴이 새빨개져서 당황하고 더듬거리며(...앗, 바, 바보...!) 대답할 것]",
+        "whisper": "\n[Acting Style: 귓가에 조용히 밀착하여 속삭이듯 나긋나긋하게 대답할 것]",
+        "crying": "\n[Acting Style: 눈물을 글썽이며 서럽게 울먹이고 흐느끼며(...흑, 훌쩍...) 대답할 것]",
+        "angry": "\n[Acting Style: 극도로 화가 나서 앙칼지게 쏘아붙이며 대답할 것]",
+        "smug": "\n[Acting Style: 비웃음(풋, 큭큭)과 함께 상대를 깔보고 놀리듯 대답할 것]"
+    }
+    if override_emo in style_prompts and system_prompt:
+        system_prompt += style_prompts[override_emo]
 
     messages = []
     if system_prompt:

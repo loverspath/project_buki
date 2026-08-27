@@ -15,10 +15,9 @@ class BukiMobileClient {
     this.sendBtn = document.getElementById('sendBtn');
     
     // Controls & Settings
-    this.quickNsfwBtn = document.getElementById('quickNsfwBtn');
-    this.nsfwStatusText = document.getElementById('nsfwStatusText');
-    this.nsfwVoiceToggle = document.getElementById('nsfwVoiceToggle');
-    this.nsfwVoiceEnabled = false;
+    this.emotionSelectTop = document.getElementById('emotionSelectTop');
+    this.emotionSelectSheet = document.getElementById('emotionSelectSheet');
+    this.actingEmotion = 'auto';
 
     this.quickVoiceBtn = document.getElementById('quickVoiceBtn');
     this.voiceStatusText = document.getElementById('voiceStatusText');
@@ -160,17 +159,16 @@ class BukiMobileClient {
       }
     });
 
-    // Quick NSFW Mode Toggle Button
-    if (this.quickNsfwBtn) {
-      this.quickNsfwBtn.addEventListener('click', () => {
-        this.toggleNsfwMode();
+    // Acting Emotion Style Selector (Topbar & Settings Sheet)
+    if (this.emotionSelectTop) {
+      this.emotionSelectTop.addEventListener('change', (e) => {
+        this.setActingEmotion(e.target.value);
       });
     }
 
-    // NSFW Voice Settings Toggle
-    if (this.nsfwVoiceToggle) {
-      this.nsfwVoiceToggle.addEventListener('change', (e) => {
-        this.setNsfwMode(e.target.checked);
+    if (this.emotionSelectSheet) {
+      this.emotionSelectSheet.addEventListener('change', (e) => {
+        this.setActingEmotion(e.target.value);
       });
     }
 
@@ -241,9 +239,20 @@ class BukiMobileClient {
       this.testVoiceBtn.disabled = true;
       this.testVoiceBtn.textContent = '🎙️ 음성 합성 중...';
       try {
-        const sampleText = this.nsfwVoiceEnabled 
-          ? '(달아오른 목소리로 신음하듯) ...하아... 바보 오빠, 지금 내 목소리 잘 들려? 읏... 허접♡'
-          : '오빠, 지금 내 목소리 잘 들려? 허접♡';
+        const emotionSamples = {
+          sensual: '(달아오른 목소리로) ...읏... 바보 오빠, 지금 내 목소리 잘 들려? 허접♡',
+          panting: '(가쁜 숨을 헐떡이며) 하아, 하아... 오빠, 나 숨차단 말이야...',
+          flustered: '앗, 바보야! 어딜 그렇게 뚫어져라 쳐다보는 거야?!',
+          whisper: '(귓가에 살며시) 오빠, 가까이 와봐... 비밀 이야기 해줄게...',
+          terrified: '히익...! 살려줘! 진짜 무섭단 말이야, 바보 오빠!',
+          resigned: '하아... 이제 다 끝났어... 마음대로 해, 허접 오빠...',
+          crying: '흑... 왜 자꾸 나만 괴롭히는 건데... 바보!',
+          smug: '어라~? 고작 그 정도로 지친 거야? 풋, 진짜 못말리는 허접이네~',
+          angry: '진짜 짜증 나게 왜 자꾸 사람 말을 못 알아듣는 건데?!',
+          auto: '오빠, 지금 내 목소리 잘 들려? 허접♡'
+        };
+
+        const sampleText = emotionSamples[this.actingEmotion] || emotionSamples.auto;
 
         const res = await fetch('/api/tts', {
           method: 'POST',
@@ -252,7 +261,7 @@ class BukiMobileClient {
             text: sampleText,
             persona_id: this.personaSelect.value,
             tts_engine: this.ttsEngineSelect.value,
-            nsfw_mode: this.nsfwVoiceEnabled
+            acting_emotion: this.actingEmotion
           })
         });
         if (res.ok) {
@@ -500,7 +509,7 @@ class BukiMobileClient {
         inferred_emotion: seg.inferred_emotion,
         tts_engine: engine,
         context_narration: seg.context_narration,
-        nsfw_mode: this.nsfwVoiceEnabled
+        acting_emotion: this.actingEmotion
       })
     });
 
@@ -659,23 +668,20 @@ class BukiMobileClient {
     }
   }
 
-  toggleNsfwMode() {
-    this.setNsfwMode(!this.nsfwVoiceEnabled);
-  }
-
-  setNsfwMode(enabled) {
-    this.nsfwVoiceEnabled = !!enabled;
-    if (this.quickNsfwBtn) {
-      if (this.nsfwVoiceEnabled) {
-        this.quickNsfwBtn.classList.add('active');
-        this.nsfwStatusText.textContent = '🔞 NSFW ON';
+  setActingEmotion(emotion) {
+    this.actingEmotion = emotion || 'auto';
+    if (this.emotionSelectTop) {
+      this.emotionSelectTop.value = this.actingEmotion;
+      if (this.actingEmotion !== 'auto') {
+        this.emotionSelectTop.style.borderColor = '#ff2d55';
+        this.emotionSelectTop.style.boxShadow = '0 0 10px rgba(255, 45, 85, 0.4)';
       } else {
-        this.quickNsfwBtn.classList.remove('active');
-        this.nsfwStatusText.textContent = 'NSFW OFF';
+        this.emotionSelectTop.style.borderColor = '';
+        this.emotionSelectTop.style.boxShadow = '';
       }
     }
-    if (this.nsfwVoiceToggle) {
-      this.nsfwVoiceToggle.checked = this.nsfwVoiceEnabled;
+    if (this.emotionSelectSheet) {
+      this.emotionSelectSheet.value = this.actingEmotion;
     }
     this.saveSettings();
   }
@@ -687,7 +693,7 @@ class BukiMobileClient {
         model: this.modelSelect ? this.modelSelect.value : 'z-ai/glm-5.3-flash',
         ttsEngine: this.ttsEngineSelect ? this.ttsEngineSelect.value : 'gpt_sovits',
         voiceEnabled: this.voiceEnabled,
-        nsfwVoiceEnabled: this.nsfwVoiceEnabled,
+        actingEmotion: this.actingEmotion,
         scriptPersona: this.scriptPersonaSelect ? this.scriptPersonaSelect.value : 'mesugaki',
         scriptTtsEngine: this.scriptTtsEngineSelect ? this.scriptTtsEngineSelect.value : 'gpt_sovits'
       };
@@ -724,8 +730,8 @@ class BukiMobileClient {
         this.updateTTSBadge();
       }
 
-      if (s.nsfwVoiceEnabled !== undefined) {
-        this.setNsfwMode(s.nsfwVoiceEnabled);
+      if (s.actingEmotion) {
+        this.setActingEmotion(s.actingEmotion);
       }
 
       if (s.voiceEnabled !== undefined) {
@@ -916,7 +922,7 @@ class BukiMobileClient {
           tts_engine: ttsEngine,
           history: this.history,
           voice_enabled: this.voiceEnabled,
-          nsfw_mode: this.nsfwVoiceEnabled
+          acting_emotion: this.actingEmotion
         })
       });
 

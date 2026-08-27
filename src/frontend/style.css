@@ -147,6 +147,45 @@ html, body {
   animation: pulse-nsfw 2.2s infinite ease-in-out;
 }
 
+.emotion-pill-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.emotion-pill-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(255, 45, 85, 0.14);
+  border: 1px solid rgba(255, 45, 85, 0.45);
+  border-radius: 20px;
+  padding: 5px 26px 5px 10px;
+  color: #ff4d6d;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23ff4d6d' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  max-width: 130px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emotion-pill-select:hover, .emotion-pill-select:focus {
+  border-color: #ff2d55;
+  box-shadow: 0 0 10px rgba(255, 45, 85, 0.4);
+}
+
+.emotion-pill-select option {
+  background: #181822;
+  color: #ffffff;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+}
+
 @keyframes pulse-nsfw {
   0%, 100% { box-shadow: 0 0 6px rgba(255, 45, 85, 0.3); }
   50% { box-shadow: 0 0 14px rgba(255, 45, 85, 0.6); }
