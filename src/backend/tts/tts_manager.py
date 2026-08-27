@@ -19,6 +19,38 @@ if SAMPLES_REGISTRY_PATH.exists():
     except Exception as e:
         print(f"[TTS Manager] Could not load sample registry: {e}")
 
+def enrich_gpt_sovits_text(text: str, emotion: str) -> Tuple[str, float]:
+    """
+    Applies phoneme & punctuation styling for GPT-SoVITS autoregressive prosody:
+    - Inserts breath pauses (...하아..., ...읏...)
+    - Adjusts synthesis speed and trailing pitch
+    """
+    styled_text = text
+    speed = 1.0
+
+    if emotion == "sensual":
+        speed = 0.90 # Slower, breathier, more relaxed
+        if not any(b in styled_text for b in ["읏", "하아", "응..."]):
+            styled_text = f"...읏... {styled_text}~"
+    elif emotion == "panting":
+        speed = 1.05 # Rapid, breathless cadence
+        if not styled_text.startswith("...하아"):
+            styled_text = f"...하아, 하아... {styled_text}"
+    elif emotion == "whisper":
+        speed = 0.92 # Soft, intimate, gentle cadence
+        if not styled_text.startswith("..."):
+            styled_text = f"... {styled_text}"
+    elif emotion == "flustered":
+        speed = 1.08 # Stuttering, agitated cadence
+        if not any(k in styled_text for k in ["앗", "...!"]):
+            styled_text = f"...앗, {styled_text}!"
+    elif emotion == "angry":
+        speed = 1.12 # Fast, forceful, loud
+    elif emotion in ["smug", "tease"]:
+        speed = 1.00 # Sassy, relaxed
+
+    return styled_text, speed
+
 async def synthesize_smart_speech(
     text: str,
     persona_id: str,
@@ -29,7 +61,7 @@ async def synthesize_smart_speech(
 ) -> Tuple[Optional[str], str]:
     """
     Intelligent speech synthesis router:
-    - 'gpt_sovits': Patiently waits for GPT-SoVITS synthesis (strict).
+    - 'gpt_sovits': Patiently waits for GPT-SoVITS synthesis with dynamic emotion banks & prosody enrichment.
     - 'chatterbox': Uses 0.5B Chatterbox TTS with paralinguistic tag conversion ([laugh], [sigh], [whisper]).
     - 'auto': Tries GPT-SoVITS, then Chatterbox, then falls back to Edge-TTS.
     - 'edge_tts': Directly uses Edge-TTS.
@@ -58,36 +90,73 @@ async def synthesize_smart_speech(
     if preferred_engine in ["gpt_sovits", "auto"]:
         ref_wav = voice_sample_cfg.get("default_ref_wav")
         prompt_text = voice_sample_cfg.get("default_prompt_text", "")
-        prompt_lang = voice_sample_cfg.get("prompt_lang", "ja")
+        prompt_lang = voice_sample_cfg.get("prompt_lang", "ko")
         target_lang = voice_sample_cfg.get("target_lang", "ko")
 
-        # Dynamic Emotion Bank Routing
+        target_emotion = override_emotion
+        action_str = " ".join(detected_actions or []).lower()
+        combined_context = f"{action_str} {clean_text.lower()}"
+
+        if not target_emotion:
+            # NSFW / Sensual / Moan
+            if any(k in combined_context for k in [
+                "신음", "달아오른", "야릇", "흐트러", "앙탈", "달콤한 교성", "허덕이", "교태", "녹아내리", "애원"
+            ]):
+                target_emotion = "sensual"
+            # Panting / Heavy Breathing
+            elif any(k in combined_context for k in [
+                "헐떡", "가쁜 숨", "거친 숨", "숨을 몰아쉬", "하악", "하아하아", "숨이 차"
+            ]):
+                target_emotion = "panting"
+            # Flustered / Blushing
+            elif any(k in combined_context for k in [
+                "얼굴을 붉히", "부끄러", "발개진", "부끄러워", "당황하", "허둥지둥"
+            ]):
+                target_emotion = "flustered"
+            # Whispering / Intimate
+            elif any(k in combined_context for k in [
+                "속삭", "귓가", "소곤", "귓속말", "살며시 다가와", "귀에 대고"
+            ]):
+                target_emotion = "whisper"
+            # Smug / Teasing
+            elif any(k in combined_context for k in [
+                "비웃", "피식", "혀를 차", "한심", "콧방귀", "멍청", "허접", "풋"
+            ]):
+                target_emotion = "smug"
+            # Playful / Tease
+            elif any(k in combined_context for k in [
+                "놀리", "장난", "우후후", "쿠후후", "킥킥"
+            ]):
+                target_emotion = "tease"
+            # Angry / Screaming
+            elif any(k in combined_context for k in [
+                "화", "버럭", "소리치", "짜증", "인상", "노려보", "째려"
+            ]):
+                target_emotion = "angry"
+
+        # Apply emotion bank ref wav if available
         if "emotion_banks" in voice_sample_cfg:
             banks = voice_sample_cfg["emotion_banks"]
-            target_emotion = override_emotion
-
-            if not target_emotion and detected_actions:
-                action_str = " ".join(detected_actions).lower()
-                if any(k in action_str for k in ["비웃", "피식", "혀를 차", "한심", "콧방귀", "멍청", "허접", "풋"]):
-                    target_emotion = "smug"
-                elif any(k in action_str for k in ["놀리", "장난", "귓가", "속삭", "살살", "우후후", "쿠후후", "킥킥"]):
-                    target_emotion = "tease"
-                elif any(k in action_str for k in ["화", "버럭", "소리치", "짜증", "인상", "노려보", "째려"]):
-                    target_emotion = "angry"
-
-            if target_emotion and target_emotion in banks:
+            if target_emotion in banks:
                 ref_wav = banks[target_emotion].get("ref_wav", ref_wav)
                 prompt_text = banks[target_emotion].get("prompt_text", prompt_text)
                 prompt_lang = banks[target_emotion].get("lang", prompt_lang)
+            elif target_emotion in ["sensual", "whisper", "tease"] and "tease" in banks:
+                ref_wav = banks["tease"].get("ref_wav", ref_wav)
+                prompt_text = banks["tease"].get("prompt_text", prompt_text)
+                prompt_lang = banks["tease"].get("lang", prompt_lang)
+
+        # Prosody & text phoneme enrichment
+        enriched_text, speed = enrich_gpt_sovits_text(clean_text, target_emotion or "default")
 
         if ref_wav:
             audio_b64 = await synthesize_gpt_sovits_base64(
-                text=clean_text,
+                text=enriched_text,
                 ref_audio_path=ref_wav,
                 prompt_text=prompt_text,
                 prompt_lang=prompt_lang,
                 target_lang=target_lang,
-                speed=1.0,
+                speed=speed,
                 max_retries=2
             )
             if audio_b64:
