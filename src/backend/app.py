@@ -50,14 +50,69 @@ class DirectTTSRequest(BaseModel):
     persona_id: Optional[str] = "mesugaki"
     tts_engine: Optional[str] = "gpt_sovits"
 
+def is_bracket_balanced(text: str) -> bool:
+    """
+    Checks if all opening action delimiters '(', '[', '{', '〈', '《', '*'
+    are properly closed.
+    """
+    if text.count('(') > text.count(')'):
+        return False
+    if text.count('[') > text.count(']'):
+        return False
+    if text.count('{') > text.count('}'):
+        return False
+    if text.count('〈') > text.count('〉'):
+        return False
+    if text.count('《') > text.count('》'):
+        return False
+    if text.count('*') % 2 != 0:
+        return False
+    return True
+
+def is_safe_sentence_boundary(buffer: str) -> bool:
+    """
+    Returns True only when the buffer ends with a punctuation mark
+    AND all action brackets/parentheses are fully closed.
+    """
+    if not is_bracket_balanced(buffer):
+        return False
+    
+    # Check if buffer ends with sentence punctuation or newline
+    if re.search(r'([.!?！？\n]+)\s*$', buffer):
+        return True
+    
+    # Check if buffer ends with '~' with sufficient content
+    if re.search(r'(~+)\s*$', buffer) and len(buffer.strip()) >= 6:
+        return True
+        
+    return False
+
 def parse_dialogue_and_actions(text: str) -> Tuple[str, List[str]]:
-    """Separates spoken dialogue from action/narration tags."""
-    action_matches = re.findall(r'[\(\[\*]([^\)\]\*]+)[\)\]\*]', text)
+    """
+    Separates spoken dialogue from action/narration tags.
+    Extracts actions for avatar animations while completely isolating
+    dialogue for the TTS engine.
+    """
+    # 1. Extract action tags from various brackets: ( ), [ ], * *, 〈 〉, 《 》
+    action_matches = re.findall(r'[\(\[\*〈《]([^\)\]\*〉》]+)[\)\]\*〉》]', text)
     actions = [a.strip() for a in action_matches if a.strip()]
 
-    spoken = re.sub(r'\([^\)]*\)|\[[^\]]*\]|\*[^\*]*\*|\<[^\>]*\>', '', text).strip()
-    clean_speech = re.sub(r'[\*\#\_`~]', '', spoken).strip()
-    
+    # 2. Strip all fully enclosed action tags
+    cleaned = re.sub(r'\([^\)]*\)|\[[^\]]*\]|\*[^\*]*\*|\<[^\>]*\>|〈[^〉]*〉|《[^》]*》', ' ', text)
+
+    # 3. Strip any unclosed trailing bracket at chunk boundaries
+    cleaned = re.sub(r'[\(\[\*〈《][^\)\]\*〉》]*$', '', cleaned)
+
+    # 4. Remove dialogue prefixes like '대사:', '행동:'
+    cleaned = re.sub(r'^(대사|말|응답)\s*:\s*', '', cleaned)
+
+    # 5. Clean markdown symbols, hashtags, quotes
+    clean_speech = re.sub(r'[\*\#\_`"]', '', cleaned).strip()
+
+    # 6. Normalize multiple spaces
+    clean_speech = re.sub(r'\s+', ' ', clean_speech).strip()
+
+    # 7. Check if there are pronounceable syllables
     has_pronounceable = bool(re.search(r'[가-힣a-zA-Z0-9]', clean_speech))
     if not has_pronounceable:
         clean_speech = ""
@@ -98,8 +153,10 @@ async def get_system_info():
 async def direct_tts(req: DirectTTSRequest):
     persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
     speech_text, actions = parse_dialogue_and_actions(req.text)
+    
+    # If the text has no pronounceable dialogue (only actions), return empty without TTS
     if not speech_text:
-        speech_text = req.text
+        return {"audio_base64": "", "spoken_text": "", "actions": actions, "engine_used": "none"}
         
     audio_base64, engine_used = await synthesize_smart_speech(
         text=speech_text,
@@ -179,12 +236,12 @@ async def chat_stream(req: ChatStreamRequest):
                             full_response_text += token
                             sentence_buffer += token
 
-                            # Stream token
+                            # Stream token to frontend for instant visual rendering
                             token_event = {"type": "token", "token": token}
                             yield f"data: {json.dumps(token_event, ensure_ascii=False)}\n\n"
 
-                            # Sentence boundary
-                            if req.voice_enabled and re.search(r'([.!?！？\n]+|\~+)\s*$', sentence_buffer):
+                            # Sentence boundary check with balanced bracket validation
+                            if req.voice_enabled and is_safe_sentence_boundary(sentence_buffer):
                                 speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
                                 raw_sentence = sentence_buffer.strip()
                                 sentence_buffer = ""
@@ -212,6 +269,7 @@ async def chat_stream(req: ChatStreamRequest):
                                         }
                                         yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
                                 elif detected_actions:
+                                    # Action cues without dialogue change avatar facial expression without speaking
                                     action_event = {
                                         "type": "action_cue",
                                         "actions": detected_actions
@@ -243,6 +301,12 @@ async def chat_stream(req: ChatStreamRequest):
                             "audio_base64": audio_b64
                         }
                         yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
+                elif detected_actions:
+                    action_event = {
+                        "type": "action_cue",
+                        "actions": detected_actions
+                    }
+                    yield f"data: {json.dumps(action_event, ensure_ascii=False)}\n\n"
 
             done_event = {"type": "done", "full_text": full_response_text}
             yield f"data: {json.dumps(done_event, ensure_ascii=False)}\n\n"
