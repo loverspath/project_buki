@@ -1,0 +1,106 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Project BUKI - Virtual AI Companion</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header glass-card">
+      <div class="brand">
+        <div class="status-indicator online" id="statusIndicator"></div>
+        <h1 class="logo-text">BUKI <span>ENGINE</span></h1>
+      </div>
+
+      <div class="controls-bar">
+        <div class="control-group">
+          <label for="personaSelect">페르소나</label>
+          <select id="personaSelect" class="glass-select">
+            <option value="mesugaki" selected>메스가키 (Gemma)</option>
+            <option value="sayaka">사야카 (Sayaka)</option>
+            <option value="ruri">루리 (Kasumi Ruri)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="modelSelect">LLM 모델</label>
+          <select id="modelSelect" class="glass-select">
+            <option value="gemma-mesugaki:latest" selected>gemma-mesugaki:latest</option>
+            <option value="huihui_ai/qwen2.5-coder-abliterate:14b">qwen2.5-coder:14b</option>
+          </select>
+        </div>
+
+        <div class="control-group voice-toggle-group">
+          <label class="toggle-switch">
+            <input type="checkbox" id="voiceToggle" checked>
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">🔊 TTS</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- Left / Top: Avatar & Emotion Visualizer -->
+      <section class="avatar-panel glass-card">
+        <div class="avatar-wrapper">
+          <div class="avatar-glow" id="avatarGlow"></div>
+          <div class="avatar-orb" id="avatarOrb">
+            <div class="avatar-face" id="avatarFace">😏</div>
+            <div class="voice-wave-ring" id="voiceWaveRing"></div>
+          </div>
+        </div>
+
+        <div class="persona-badge" id="personaBadge">
+          <span class="badge-tag">STATUS</span>
+          <span class="badge-name" id="badgeName">메스가키 (Gemma)</span>
+        </div>
+        
+        <div class="speaking-state" id="speakingState">대기 중...</div>
+      </section>
+
+      <!-- Right / Center: Chat Stream Box -->
+      <section class="chat-panel glass-card">
+        <div class="chat-history" id="chatHistory">
+          <!-- Initial Welcome Message -->
+          <div class="chat-bubble assistant-bubble">
+            <div class="bubble-header">
+              <span class="sender-name">메스가키</span>
+              <span class="bubble-time">지금</span>
+            </div>
+            <div class="bubble-content">
+              ...뭐야, 바보같이 쳐다보고만 있을 거야? 할 말 있으면 빨리 말해보든가! 😒
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Bar -->
+        <div class="input-container glass-card">
+          <form id="chatForm" class="chat-form">
+            <textarea 
+              id="messageInput" 
+              class="glass-input" 
+              placeholder="메시지를 입력하세요 (Enter로 전송, Shift+Enter로 줄바꿈)..." 
+              rows="1"
+            ></textarea>
+            <button type="submit" id="sendBtn" class="send-button" title="전송">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+              </svg>
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
