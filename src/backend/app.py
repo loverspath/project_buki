@@ -198,6 +198,8 @@ async def get_system_info():
 
     flat_models = OPENROUTER_MODELS + NVIDIA_MODELS + categorized_models["local_ollama"]
     gpt_sovits_status = await is_gpt_sovits_alive()
+    from tts.chatterbox_service import is_chatterbox_alive
+    chatterbox_status = await is_chatterbox_alive()
 
     return {
         "personas": list(PERSONAS.values()),
@@ -208,10 +210,12 @@ async def get_system_info():
         "default_tts_engine": "gpt_sovits",
         "gpt_sovits_url": GPT_SOVITS_URL,
         "gpt_sovits_online": gpt_sovits_status,
+        "chatterbox_online": chatterbox_status,
         "available_tts_engines": [
-            {"id": "gpt_sovits", "name": "GPT-SoVITS (3초 제로샷 - 기본)"},
-            {"id": "auto", "name": "자동 (GPT-SoVITS ➔ Edge-TTS 폴백)"},
-            {"id": "edge_tts", "name": "Edge-TTS (초고속 기본 음성)"}
+            {"id": "gpt_sovits", "name": "🎙️ GPT-SoVITS (3초 제로샷 - 기본)"},
+            {"id": "chatterbox", "name": "🎭 Chatterbox (0.5B 감정/태그 제어)"},
+            {"id": "auto", "name": "⚡ 자동 (SoVITS ➔ Chatterbox ➔ Edge)"},
+            {"id": "edge_tts", "name": "🔊 Edge-TTS (초고속 기본 음성)"}
         ]
     }
 

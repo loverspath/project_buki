@@ -7,6 +7,7 @@ from pathlib import Path
 
 from tts.tts_service import synthesize_speech_base64
 from tts.gpt_sovits_service import synthesize_gpt_sovits_base64, is_gpt_sovits_alive
+from tts.chatterbox_service import synthesize_speech_chatterbox, is_chatterbox_alive
 
 SAMPLES_REGISTRY_PATH = Path(__file__).parent.parent.parent / "assets" / "voice_samples" / "sample_registry.json"
 
@@ -28,9 +29,10 @@ async def synthesize_smart_speech(
 ) -> Tuple[Optional[str], str]:
     """
     Intelligent speech synthesis router:
-    - If preferred_engine == 'gpt_sovits': Patiently waits for GPU synthesis (up to 120s) without switching to Edge-TTS.
-    - If preferred_engine == 'auto': Tries GPT-SoVITS first, falls back to Edge-TTS only if offline.
-    - If preferred_engine == 'edge_tts': Directly uses Edge-TTS.
+    - 'gpt_sovits': Patiently waits for GPT-SoVITS synthesis (strict).
+    - 'chatterbox': Uses 0.5B Chatterbox TTS with paralinguistic tag conversion ([laugh], [sigh], [whisper]).
+    - 'auto': Tries GPT-SoVITS, then Chatterbox, then falls back to Edge-TTS.
+    - 'edge_tts': Directly uses Edge-TTS.
     """
     clean_text = text.strip()
     if not clean_text:
@@ -38,7 +40,21 @@ async def synthesize_smart_speech(
 
     voice_sample_cfg = VOICE_SAMPLES.get(persona_id) or VOICE_SAMPLES.get("mesugaki", {})
 
-    # 1. GPT-SoVITS Execution (Priority & Strict mode)
+    # 1. Chatterbox Engine (When explicitly selected)
+    if preferred_engine == "chatterbox":
+        audio_b64 = await synthesize_speech_chatterbox(
+            text=clean_text,
+            persona_id=persona_id,
+            persona_config=persona_config,
+            detected_actions=detected_actions,
+            override_emotion=override_emotion
+        )
+        if audio_b64:
+            return audio_b64, "chatterbox"
+        print(f"[TTS Manager] Chatterbox synthesis failed or offline.")
+        return None, "chatterbox_failed"
+
+    # 2. GPT-SoVITS Execution (Priority & Strict mode)
     if preferred_engine in ["gpt_sovits", "auto"]:
         ref_wav = voice_sample_cfg.get("default_ref_wav")
         prompt_text = voice_sample_cfg.get("default_prompt_text", "")
@@ -79,10 +95,10 @@ async def synthesize_smart_speech(
 
         # If user strictly selected 'gpt_sovits', do not fall back to Edge-TTS
         if preferred_engine == "gpt_sovits":
-            print(f"[TTS Manager] GPT-SoVITS requested strictly. Skipping Edge-TTS fallback.")
+            print(f"[TTS Manager] GPT-SoVITS requested strictly. Skipping fallback.")
             return None, "gpt_sovits_failed"
 
-    # 2. Edge-TTS (When auto fallback or explicit edge_tts is selected)
+    # 3. Edge-TTS (When auto fallback or explicit edge_tts is selected)
     voice = persona_config.get("voice", "ko-KR-SunHiNeural")
     pitch = persona_config.get("voice_pitch", "+40Hz")
     rate = persona_config.get("voice_rate", "+22%")

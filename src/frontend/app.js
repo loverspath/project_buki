@@ -612,10 +612,13 @@ class BukiMobileClient {
 
     if (engine === 'gpt_sovits') {
       this.currentEngineBadge.textContent = '🎙️ SoVITS';
-      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>GPT-SoVITS 모드</strong> (미구동 시 Edge 자동 폴백)';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>GPT-SoVITS 3초 제로샷 모드</strong> (포트 9880)';
+    } else if (engine === 'chatterbox') {
+      this.currentEngineBadge.textContent = '🎭 Chatterbox';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>Chatterbox 0.5B 감정/태그 제어 모드</strong> (포트 9882)';
     } else if (engine === 'auto') {
       this.currentEngineBadge.textContent = '⚡ AUTO';
-      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>자동 폴백 (SoVITS ➔ Edge)</strong>';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>스마트 자동 폴백 (SoVITS ➔ Chatterbox ➔ Edge)</strong>';
     } else {
       this.currentEngineBadge.textContent = '🔊 Edge';
       this.ttsStatusDetail.innerHTML = '현재 상태: <strong>Edge-TTS 초고속 모드</strong>';

@@ -166,6 +166,7 @@
               <label>🎙️ TTS 엔진</label>
               <select id="scriptEngineSelect" class="sheet-select">
                 <option value="gpt_sovits" selected>🎙️ GPT-SoVITS (제로샷 감정 연기)</option>
+                <option value="chatterbox">🎭 Chatterbox (0.5B 감정/태그 제어)</option>
                 <option value="edge_tts">🔊 Edge-TTS (초고속)</option>
               </select>
             </div>
@@ -253,7 +254,8 @@
           <label class="sheet-label">🎙️ 음성 합성 (TTS) 엔진</label>
           <select id="ttsEngineSelect" class="sheet-select">
             <option value="gpt_sovits" selected>🎙️ GPT-SoVITS (3초 제로샷 캐릭터 보이스)</option>
-            <option value="auto">⚡ 자동 폴백 (GPT-SoVITS ➔ Edge-TTS)</option>
+            <option value="chatterbox">🎭 Chatterbox (0.5B 감정/태그 제어)</option>
+            <option value="auto">⚡ 자동 폴백 (SoVITS ➔ Chatterbox ➔ Edge)</option>
             <option value="edge_tts">🔊 Edge-TTS (초고속 기본 음성)</option>
           </select>
           <div class="sheet-hint" id="ttsStatusDetail">
