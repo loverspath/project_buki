@@ -80,12 +80,14 @@ class BukiMobileClient {
 
     this.personaColors = {
       mesugaki: '#ff4d88',
+      mutsuki: '#ff2d55',
       sayaka: '#4da6ff',
       ruri: '#a855f7'
     };
 
     this.personaFaces = {
       mesugaki: { idle: '😏', speaking: '😜', smirk: '😼', sigh: '😮‍💨', glare: '😒' },
+      mutsuki: { idle: '💣', speaking: '😜', smirk: '😼', sigh: '😮‍💨', glare: '😈' },
       sayaka: { idle: '✨', speaking: '😊', laugh: '😆', think: '🤔' },
       ruri: { idle: '🧐', speaking: '🎙️', analyze: '📊', calm: '😌' }
     };
@@ -394,7 +396,7 @@ class BukiMobileClient {
         };
 
         const emotionTag = emotionLabels[seg.inferred_emotion] || '💬 대사';
-        const speakerNames = { mesugaki: '메스가키', sayaka: '사야카', ruri: '루리' };
+        const speakerNames = { mesugaki: '메스가키', mutsuki: '무츠키', sayaka: '사야카', ruri: '루리' };
         const speaker = speakerNames[seg.persona_id] || '캐릭터';
 
         el.innerHTML = `
@@ -644,7 +646,7 @@ class BukiMobileClient {
     document.documentElement.style.setProperty('--accent-color', color);
     this.avatarGlow.style.background = color;
     
-    const names = { mesugaki: '메스가키', sayaka: '사야카', ruri: '루리' };
+    const names = { mesugaki: '메스가키', mutsuki: '무츠키', sayaka: '사야카', ruri: '루리' };
     this.badgeName.textContent = names[persona] || persona;
     this.avatarFace.textContent = (this.personaFaces[persona] || {}).idle || '😊';
   }
