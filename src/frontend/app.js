@@ -822,9 +822,10 @@ class BukiMobileClient {
         
         const friendlyNames = {
           // Google Gemini Official
-          'gemini-2.0-flash': '✨ Google Gemini 2.0 Flash (공식 무료 API 키 필요)',
-          'gemini-1.5-flash': '🌟 Google Gemini 1.5 Flash (공식 무료 API 키 필요)',
-          'gemini-2.0-flash-lite-preview-02-05': '⚡ Google Gemini 2.0 Flash Lite (초경량/고속)',
+          'gemini-3.6-flash': '✨ Google Gemini 3.6 Flash (⭐ 1순위 추천 - 초고속 플래시)',
+          'gemini-3.7-flash': '🧠 Google Gemini 3.7 Flash (추론 강화 차세대 모델)',
+          'gemini-flash-latest': '🌟 Google Gemini Flash Latest (최신 플래시)',
+          'gemini-flash-lite-latest': '⚡ Google Gemini Flash Lite (초경량/초고속)',
 
           // OpenRouter Models
           'openrouter/free': '🚀 OpenRouter Free (⭐ 스마트 고가용성 무료 라우터 - 1순위 추천)',

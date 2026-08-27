@@ -7,9 +7,10 @@
   },
   "models": {
     "gemini_cloud": [
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-2.0-flash-lite-preview-02-05"
+      "gemini-3.6-flash",
+      "gemini-3.7-flash",
+      "gemini-flash-latest",
+      "gemini-flash-lite-latest"
     ],
     "openrouter_free": [
       "openrouter/free",
@@ -28,7 +29,7 @@
   },
   "defaults": {
     "persona": "mesugaki",
-    "model": "openrouter/free",
+    "model": "gemini-3.6-flash",
     "tts_engine": "gpt_sovits",
     "acting_emotion": "auto"
   },
