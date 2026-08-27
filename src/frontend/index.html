@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>BUKI - Virtual AI Companion</title>
+  <title>BUKI - Virtual AI Companion & Script Reader</title>
   <link rel="stylesheet" href="/static/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,6 +35,18 @@
       </div>
     </header>
 
+    <!-- Page Switcher Tabs -->
+    <nav class="app-mode-tabs">
+      <button id="tabChatBtn" class="mode-tab active">
+        <span class="tab-icon">💬</span>
+        <span class="tab-label">실시간 채팅</span>
+      </button>
+      <button id="tabScriptBtn" class="mode-tab">
+        <span class="tab-icon">📖</span>
+        <span class="tab-label">대본 낭독기</span>
+      </button>
+    </nav>
+
     <!-- Compact Floating Avatar & Status Bar -->
     <section class="compact-avatar-bar glass-card">
       <div class="avatar-mini-wrapper">
@@ -61,48 +73,141 @@
       </div>
     </section>
 
-    <!-- Chat Message History -->
-    <main class="chat-container" id="chatContainer">
-      <div class="chat-history" id="chatHistory">
-        <!-- Initial Welcome Message -->
-        <div class="chat-bubble assistant-bubble">
-          <div class="bubble-header">
-            <span class="sender-name">메스가키</span>
-            <span class="bubble-time">지금</span>
+    <!-- ============================================== -->
+    <!-- VIEW 1: LIVE CHAT VIEW                         -->
+    <!-- ============================================== -->
+    <div id="chatView" class="app-view active-view">
+      <!-- Chat Message History -->
+      <main class="chat-container" id="chatContainer">
+        <div class="chat-history" id="chatHistory">
+          <!-- Initial Welcome Message -->
+          <div class="chat-bubble assistant-bubble">
+            <div class="bubble-header">
+              <span class="sender-name">메스가키</span>
+              <span class="bubble-time">지금</span>
+            </div>
+            <div class="bubble-content">
+              ...뭐야, 바보같이 쳐다보고만 있을 거야? 할 말 있으면 빨리 말해보든가! 😒
+            </div>
           </div>
-          <div class="bubble-content">
-            ...뭐야, 바보같이 쳐다보고만 있을 거야? 할 말 있으면 빨리 말해보든가! 😒
+        </div>
+      </main>
+
+      <!-- Quick Action Chips -->
+      <div class="quick-chips-bar">
+        <button class="chip-btn" data-text="안녕! 오늘 기분 어때?">👋 안녕!</button>
+        <button class="chip-btn" data-text="너 진짜 바보야?">😜 바보!</button>
+        <button class="chip-btn" data-text="나한테 메스가키 대사 하나 해줘">💖 대사해줘</button>
+        <button class="chip-btn" data-text="요즘 무슨 생각 해?">🤔 뭐해?</button>
+      </div>
+
+      <!-- Mobile Messenger Input Bar -->
+      <footer class="app-bottom-bar glass-input-bar">
+        <form id="chatForm" class="mobile-chat-form">
+          <div class="input-pill-wrapper">
+            <textarea 
+              id="messageInput" 
+              class="mobile-textarea" 
+              placeholder="메시지를 입력하세요..." 
+              rows="1"
+            ></textarea>
+          </div>
+          <button type="submit" id="sendBtn" class="mobile-send-btn" title="전송">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+            </svg>
+          </button>
+        </form>
+      </footer>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- VIEW 2: SCRIPT READER VIEW                     -->
+    <!-- ============================================== -->
+    <div id="scriptView" class="app-view" style="display:none;">
+      
+      <!-- Screen A: Script Input & Config Mode -->
+      <div id="scriptInputScreen" class="script-screen">
+        <div class="script-card glass-card">
+          <div class="script-card-header">
+            <h3>📖 대본 / 소설 텍스트 입력</h3>
+            <span class="script-badge">따옴표 = 대사</span>
+          </div>
+
+          <div class="script-hint-box">
+            💡 <strong>"큰따옴표"</strong> 안의 텍스트는 <strong>목소리(대사)</strong>로 읽고, 바깥의 지문/상황 묘사는 <strong>감정 연기(비웃음, 화남, 장난 등)</strong>로 자동 반영됩니다!
+          </div>
+
+          <!-- Quick Preset Chips -->
+          <div class="preset-chips-row">
+            <button class="preset-chip" id="presetMutsuki">💣 무츠키 장난</button>
+            <button class="preset-chip" id="presetMorning">🛏️ 아침 기상</button>
+            <button class="preset-chip" id="presetTsundere">😡 츤데레 도발</button>
+          </div>
+
+          <textarea 
+            id="scriptInputText" 
+            class="script-textarea" 
+            placeholder="대본이나 소설을 입력하거나 붙여넣으세요...&#10;&#10;예시:&#10;(팔짱을 끼고 혀를 차며 어이없다는 듯이 쳐다본다.)&#10;&quot;뭐야, 바보 오빠? 아직도 침대에서 뒹굴거리는 거야? 풋, 완전 허접이네~&quot;&#10;그러고는 귓가에 살며시 다가와 짓궂게 속삭였다.&#10;&quot;오늘 나랑 약속한 거 잊은 건 아니겠지? 우후후~&quot;"
+          ></textarea>
+
+          <div class="script-options-grid">
+            <div class="script-opt-item">
+              <label>🎭 낭독 캐릭터</label>
+              <select id="scriptPersonaSelect" class="sheet-select">
+                <option value="mesugaki" selected>😏 메스가키 (무츠키 보이스)</option>
+                <option value="sayaka">✨ 사야카 (발랄한 톤)</option>
+                <option value="ruri">🧐 루리 (이성적 분석 톤)</option>
+              </select>
+            </div>
+
+            <div class="script-opt-item">
+              <label>🎙️ TTS 엔진</label>
+              <select id="scriptEngineSelect" class="sheet-select">
+                <option value="gpt_sovits" selected>🎙️ GPT-SoVITS (제로샷 감정 연기)</option>
+                <option value="edge_tts">🔊 Edge-TTS (초고속)</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="parseScriptBtn" class="script-primary-btn">
+            ▶️ 대본 분석 및 낭독 준비
+          </button>
+        </div>
+      </div>
+
+      <!-- Screen B: Script Player Mode -->
+      <div id="scriptPlayerScreen" class="script-screen" style="display:none;">
+        <div class="script-player-header glass-card">
+          <div class="player-header-left">
+            <span class="player-progress-badge" id="playerProgressBadge">대사 0 / 0</span>
+            <span class="player-emotion-badge" id="playerEmotionBadge">🎭 준비 완료</span>
+          </div>
+          <button id="editScriptBtn" class="pill-btn" title="대본 수정">
+            ✏️ 대본 수정
+          </button>
+        </div>
+
+        <!-- Scrollable Script Viewer with Highlight -->
+        <div class="script-display-container" id="scriptDisplayContainer">
+          <!-- Populated dynamically with narration cards & dialogue bubbles -->
+        </div>
+
+        <!-- Player Bottom Controls Bar -->
+        <div class="script-player-bar glass-input-bar">
+          <div class="player-controls-row">
+            <button id="prevSegmentBtn" class="player-ctrl-btn" title="이전 대사">⏮️</button>
+            <button id="playPauseScriptBtn" class="player-ctrl-main-btn" title="재생 / 일시정지">
+              <span id="playIcon">▶️</span>
+              <span id="playLabel">낭독 시작</span>
+            </button>
+            <button id="replaySegmentBtn" class="player-ctrl-btn" title="현재 대사 다시 듣기">🔄</button>
+            <button id="nextSegmentBtn" class="player-ctrl-btn" title="다음 대사">⏭️</button>
           </div>
         </div>
       </div>
-    </main>
 
-    <!-- Quick Action Chips (Mobile-friendly shortcuts) -->
-    <div class="quick-chips-bar">
-      <button class="chip-btn" data-text="안녕! 오늘 기분 어때?">👋 안녕!</button>
-      <button class="chip-btn" data-text="너 진짜 바보야?">😜 바보!</button>
-      <button class="chip-btn" data-text="나한테 메스가키 대사 하나 해줘">💖 대사해줘</button>
-      <button class="chip-btn" data-text="요즘 무슨 생각 해?">🤔 뭐해?</button>
     </div>
-
-    <!-- Mobile Messenger Input Bar -->
-    <footer class="app-bottom-bar glass-input-bar">
-      <form id="chatForm" class="mobile-chat-form">
-        <div class="input-pill-wrapper">
-          <textarea 
-            id="messageInput" 
-            class="mobile-textarea" 
-            placeholder="메시지를 입력하세요..." 
-            rows="1"
-          ></textarea>
-        </div>
-        <button type="submit" id="sendBtn" class="mobile-send-btn" title="전송">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-          </svg>
-        </button>
-      </form>
-    </footer>
 
     <!-- Settings Bottom Sheet Modal -->
     <div class="modal-backdrop" id="modalBackdrop"></div>
