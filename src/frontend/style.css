@@ -135,6 +135,23 @@ html, body {
   color: var(--accent-color);
 }
 
+.pill-btn.nsfw-pill {
+  transition: all 0.25s ease;
+}
+
+.pill-btn.nsfw-pill.active {
+  background: rgba(255, 45, 85, 0.22);
+  border-color: #ff2d55;
+  color: #ff4d6d;
+  box-shadow: 0 0 10px rgba(255, 45, 85, 0.35);
+  animation: pulse-nsfw 2.2s infinite ease-in-out;
+}
+
+@keyframes pulse-nsfw {
+  0%, 100% { box-shadow: 0 0 6px rgba(255, 45, 85, 0.3); }
+  50% { box-shadow: 0 0 14px rgba(255, 45, 85, 0.6); }
+}
+
 .icon-btn {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--bg-surface-border);

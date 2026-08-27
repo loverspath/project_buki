@@ -15,6 +15,11 @@ class BukiMobileClient {
     this.sendBtn = document.getElementById('sendBtn');
     
     // Controls & Settings
+    this.quickNsfwBtn = document.getElementById('quickNsfwBtn');
+    this.nsfwStatusText = document.getElementById('nsfwStatusText');
+    this.nsfwVoiceToggle = document.getElementById('nsfwVoiceToggle');
+    this.nsfwVoiceEnabled = false;
+
     this.quickVoiceBtn = document.getElementById('quickVoiceBtn');
     this.voiceStatusText = document.getElementById('voiceStatusText');
     this.openSettingsBtn = document.getElementById('openSettingsBtn');
@@ -155,6 +160,20 @@ class BukiMobileClient {
       }
     });
 
+    // Quick NSFW Mode Toggle Button
+    if (this.quickNsfwBtn) {
+      this.quickNsfwBtn.addEventListener('click', () => {
+        this.toggleNsfwMode();
+      });
+    }
+
+    // NSFW Voice Settings Toggle
+    if (this.nsfwVoiceToggle) {
+      this.nsfwVoiceToggle.addEventListener('change', (e) => {
+        this.setNsfwMode(e.target.checked);
+      });
+    }
+
     // Quick Voice Toggle Button
     this.quickVoiceBtn.addEventListener('click', () => {
       this.voiceEnabled = !this.voiceEnabled;
@@ -190,6 +209,15 @@ class BukiMobileClient {
       });
     });
 
+    this.personaSelect.addEventListener('change', () => {
+      const p = this.personaSelect.value;
+      this.personaGrid.querySelectorAll('.segment-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.persona === p);
+      });
+      this.updateTheme();
+      this.saveSettings();
+    });
+
     // Model Select change
     this.modelSelect.addEventListener('change', () => this.saveSettings());
 
@@ -213,13 +241,18 @@ class BukiMobileClient {
       this.testVoiceBtn.disabled = true;
       this.testVoiceBtn.textContent = '🎙️ 음성 합성 중...';
       try {
+        const sampleText = this.nsfwVoiceEnabled 
+          ? '(달아오른 목소리로 신음하듯) ...하아... 바보 오빠, 지금 내 목소리 잘 들려? 읏... 허접♡'
+          : '오빠, 지금 내 목소리 잘 들려? 허접♡';
+
         const res = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            text: '오빠, 지금 내 목소리 잘 들려? 허접♡',
+            text: sampleText,
             persona_id: this.personaSelect.value,
-            tts_engine: this.ttsEngineSelect.value
+            tts_engine: this.ttsEngineSelect.value,
+            nsfw_mode: this.nsfwVoiceEnabled
           })
         });
         if (res.ok) {
@@ -466,7 +499,8 @@ class BukiMobileClient {
         persona_id: persona,
         inferred_emotion: seg.inferred_emotion,
         tts_engine: engine,
-        context_narration: seg.context_narration
+        context_narration: seg.context_narration,
+        nsfw_mode: this.nsfwVoiceEnabled
       })
     });
 
@@ -625,6 +659,27 @@ class BukiMobileClient {
     }
   }
 
+  toggleNsfwMode() {
+    this.setNsfwMode(!this.nsfwVoiceEnabled);
+  }
+
+  setNsfwMode(enabled) {
+    this.nsfwVoiceEnabled = !!enabled;
+    if (this.quickNsfwBtn) {
+      if (this.nsfwVoiceEnabled) {
+        this.quickNsfwBtn.classList.add('active');
+        this.nsfwStatusText.textContent = '🔞 NSFW ON';
+      } else {
+        this.quickNsfwBtn.classList.remove('active');
+        this.nsfwStatusText.textContent = 'NSFW OFF';
+      }
+    }
+    if (this.nsfwVoiceToggle) {
+      this.nsfwVoiceToggle.checked = this.nsfwVoiceEnabled;
+    }
+    this.saveSettings();
+  }
+
   saveSettings() {
     try {
       const settings = {
@@ -632,6 +687,7 @@ class BukiMobileClient {
         model: this.modelSelect ? this.modelSelect.value : 'z-ai/glm-5.3-flash',
         ttsEngine: this.ttsEngineSelect ? this.ttsEngineSelect.value : 'gpt_sovits',
         voiceEnabled: this.voiceEnabled,
+        nsfwVoiceEnabled: this.nsfwVoiceEnabled,
         scriptPersona: this.scriptPersonaSelect ? this.scriptPersonaSelect.value : 'mesugaki',
         scriptTtsEngine: this.scriptTtsEngineSelect ? this.scriptTtsEngineSelect.value : 'gpt_sovits'
       };
@@ -666,6 +722,10 @@ class BukiMobileClient {
       if (s.ttsEngine && this.ttsEngineSelect) {
         this.ttsEngineSelect.value = s.ttsEngine;
         this.updateTTSBadge();
+      }
+
+      if (s.nsfwVoiceEnabled !== undefined) {
+        this.setNsfwMode(s.nsfwVoiceEnabled);
       }
 
       if (s.voiceEnabled !== undefined) {
@@ -855,7 +915,8 @@ class BukiMobileClient {
           model: model,
           tts_engine: ttsEngine,
           history: this.history,
-          voice_enabled: this.voiceEnabled
+          voice_enabled: this.voiceEnabled,
+          nsfw_mode: this.nsfwVoiceEnabled
         })
       });
 

@@ -84,11 +84,13 @@ class ChatStreamRequest(BaseModel):
     voice_enabled: Optional[bool] = True
     tts_engine: Optional[str] = "gpt_sovits"
     custom_system_prompt: Optional[str] = None
+    nsfw_mode: Optional[bool] = False
 
 class DirectTTSRequest(BaseModel):
     text: str
     persona_id: Optional[str] = "mesugaki"
     tts_engine: Optional[str] = "gpt_sovits"
+    nsfw_mode: Optional[bool] = False
 
 class ScriptParseRequest(BaseModel):
     script_text: str
@@ -100,6 +102,7 @@ class ScriptSegmentTTSRequest(BaseModel):
     inferred_emotion: Optional[str] = "default"
     context_narration: Optional[str] = ""
     tts_engine: Optional[str] = "gpt_sovits"
+    nsfw_mode: Optional[bool] = False
 
 # --- HELPER FUNCTIONS ---
 
@@ -226,12 +229,14 @@ async def direct_tts(req: DirectTTSRequest):
     if not speech_text:
         return {"audio_base64": "", "spoken_text": "", "actions": actions, "engine_used": "none"}
         
+    override_emo = "sensual" if req.nsfw_mode else None
     audio_base64, engine_used = await synthesize_smart_speech(
         text=speech_text,
         persona_id=req.persona_id,
         persona_config=persona,
         detected_actions=actions,
-        preferred_engine=req.tts_engine or "gpt_sovits"
+        preferred_engine=req.tts_engine or "gpt_sovits",
+        override_emotion=override_emo
     )
     if not audio_base64:
         raise HTTPException(status_code=500, detail="Failed to synthesize speech")
@@ -247,13 +252,14 @@ async def parse_script_endpoint(req: ScriptParseRequest):
 @app.post("/api/script/tts_segment")
 async def tts_script_segment(req: ScriptSegmentTTSRequest):
     persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
+    override_emo = "sensual" if req.nsfw_mode else (req.inferred_emotion if req.inferred_emotion != "default" else None)
     audio_base64, engine_used = await synthesize_smart_speech(
         text=req.dialogue,
         persona_id=req.persona_id,
         persona_config=persona,
         detected_actions=[req.context_narration] if req.context_narration else [],
         preferred_engine=req.tts_engine or "gpt_sovits",
-        override_emotion=req.inferred_emotion if req.inferred_emotion != "default" else None
+        override_emotion=override_emo
     )
     if not audio_base64:
         raise HTTPException(status_code=500, detail="Failed to synthesize segment speech")
@@ -261,7 +267,7 @@ async def tts_script_segment(req: ScriptSegmentTTSRequest):
         "audio_base64": audio_base64,
         "spoken_text": req.dialogue,
         "engine_used": engine_used,
-        "inferred_emotion": req.inferred_emotion
+        "inferred_emotion": override_emo or req.inferred_emotion
     }
 
 @app.post("/api/chat/stream")
@@ -270,6 +276,10 @@ async def chat_stream(req: ChatStreamRequest):
     model_to_use = req.model or "z-ai/glm-5.3-flash"
     system_prompt = req.custom_system_prompt or persona.get("system_prompt", "")
     tts_engine_pref = req.tts_engine or "gpt_sovits"
+    override_emo = "sensual" if req.nsfw_mode else None
+
+    if req.nsfw_mode and system_prompt:
+        system_prompt += "\n[Sensual Voice Mode Active: 대화 시 살짝 달아오른 호흡 감탄사(...읏..., ...하아...)와 부끄러워하는 앙탈/귓속말 톤을 자연스럽게 섞어 대답할 것]"
 
     messages = []
     if system_prompt:
@@ -363,7 +373,8 @@ async def chat_stream(req: ChatStreamRequest):
                                                 persona_id=persona["id"],
                                                 persona_config=persona,
                                                 detected_actions=detected_actions,
-                                                preferred_engine=tts_engine_pref
+                                                preferred_engine=tts_engine_pref,
+                                                override_emotion=override_emo
                                             )
                                             if audio_b64:
                                                 audio_event = {
@@ -446,7 +457,8 @@ async def chat_stream(req: ChatStreamRequest):
                                                 persona_id=persona["id"],
                                                 persona_config=persona,
                                                 detected_actions=detected_actions,
-                                                preferred_engine=tts_engine_pref
+                                                preferred_engine=tts_engine_pref,
+                                                override_emotion=override_emo
                                             )
                                             if audio_b64:
                                                 audio_event = {
@@ -521,7 +533,8 @@ async def chat_stream(req: ChatStreamRequest):
                                             persona_id=persona["id"],
                                             persona_config=persona,
                                             detected_actions=detected_actions,
-                                            preferred_engine=tts_engine_pref
+                                            preferred_engine=tts_engine_pref,
+                                            override_emotion=override_emo
                                         )
                                         if audio_b64:
                                             audio_event = {
@@ -553,7 +566,8 @@ async def chat_stream(req: ChatStreamRequest):
                         persona_id=persona["id"],
                         persona_config=persona,
                         detected_actions=detected_actions,
-                        preferred_engine=tts_engine_pref
+                        preferred_engine=tts_engine_pref,
+                        override_emotion=override_emo
                     )
                     if audio_b64:
                         audio_event = {
