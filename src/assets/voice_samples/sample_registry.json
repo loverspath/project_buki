@@ -1,31 +1,31 @@
-﻿{
+{
   "mesugaki": {
-    "default_ref_wav": "assets/voice_samples/mesugaki_ref.wav",
-    "default_prompt_text": "허접 바보 오빠, 그것도 몰라?",
+    "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mesugaki_ref.wav",
+    "default_prompt_text": "어라? 바보 오빠, 아직도 그거 하나 제대로 이해 못한 거야? 풋, 진짜 못말리는 허접이네~",
     "prompt_lang": "ko",
     "target_lang": "ko",
     "emotion_banks": {
       "smug": {
-        "ref_wav": "assets/voice_samples/mesugaki_smug.wav",
-        "prompt_text": "풋, 어이없네 진짜~",
+        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mesugaki_smug.wav",
+        "prompt_text": "풋, 어이없네 진짜~ 그렇게 쳐다보면 내가 모를 줄 알았어? 완전 바보 오빠잖아!",
         "lang": "ko"
       },
       "angry": {
-        "ref_wav": "assets/voice_samples/mesugaki_angry.wav",
-        "prompt_text": "바보냐고! 시끄러워!",
+        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mesugaki_angry.wav",
+        "prompt_text": "하아?! 시끄럽거든! 자꾸 나 놀리면 진짜 가만 안 둘 테니까 각오해, 바보야!",
         "lang": "ko"
       }
     }
   },
   "sayaka": {
-    "default_ref_wav": "assets/voice_samples/sayaka_ref.wav",
-    "default_prompt_text": "안녕하세요! 오늘도 좋은 하루 보내요!",
+    "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/sayaka_ref.wav",
+    "default_prompt_text": "안녕하세요! 오늘도 힘차고 즐거운 하루 보내세요! 제가 곁에서 언제나 도와드릴게요!",
     "prompt_lang": "ko",
     "target_lang": "ko"
   },
   "ruri": {
-    "default_ref_wav": "assets/voice_samples/ruri_ref.wav",
-    "default_prompt_text": "데이터 분석 결과를 보고합니다.",
+    "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/ruri_ref.wav",
+    "default_prompt_text": "시스템 초기화 및 데이터 분석을 시작합니다. 모든 파라미터가 정상 범위 내에서 작동 중입니다.",
     "prompt_lang": "ko",
     "target_lang": "ko"
   }

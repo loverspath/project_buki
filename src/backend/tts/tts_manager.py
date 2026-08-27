@@ -11,7 +11,7 @@ SAMPLES_REGISTRY_PATH = Path(__file__).parent.parent.parent / "assets" / "voice_
 VOICE_SAMPLES: Dict[str, Any] = {}
 if SAMPLES_REGISTRY_PATH.exists():
     try:
-        with open(SAMPLES_REGISTRY_PATH, "r", encoding="utf-8") as f:
+        with open(SAMPLES_REGISTRY_PATH, "r", encoding="utf-8-sig") as f:
             VOICE_SAMPLES = json.load(f)
     except Exception as e:
         print(f"[TTS Manager] Could not load sample registry: {e}")
