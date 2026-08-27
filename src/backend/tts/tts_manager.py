@@ -22,28 +22,35 @@ if SAMPLES_REGISTRY_PATH.exists():
 def enrich_gpt_sovits_text(text: str, emotion: str) -> Tuple[str, float]:
     """
     Applies phoneme & punctuation styling for GPT-SoVITS autoregressive prosody:
-    - Inserts breath pauses (...하아..., ...읏...)
-    - Adjusts synthesis speed and trailing pitch
+    - Normalizes punctuation to prevent empty chunk token hallucination
+    - Inserts clean vocalizations and adjusts synthesis speed
     """
-    styled_text = text
+    # Clean leading/trailing punctuation debris
+    clean = re.sub(r"^[\s.,~…·!?;:]+", "", text).strip()
+    clean = re.sub(r"[.]{2,}", "…", clean)
+    clean = re.sub(r"[,]{2,}", ",", clean)
+    clean = re.sub(r"\s+", " ", clean).strip()
+
+    if not clean:
+        return text, 1.0
+
+    styled_text = clean
     speed = 1.0
 
     if emotion == "sensual":
         speed = 0.90 # Slower, breathier, more relaxed
-        if not any(b in styled_text for b in ["읏", "하아", "응..."]):
-            styled_text = f"...읏... {styled_text}~"
+        if not any(b in styled_text for b in ["읏", "하아", "응"]):
+            styled_text = f"읏, {styled_text}~"
     elif emotion == "panting":
         speed = 1.05 # Rapid, breathless cadence
-        if not styled_text.startswith("...하아"):
-            styled_text = f"...하아, 하아... {styled_text}"
+        if not styled_text.startswith("하아"):
+            styled_text = f"하아, 하아, {styled_text}"
     elif emotion == "whisper":
         speed = 0.92 # Soft, intimate, gentle cadence
-        if not styled_text.startswith("..."):
-            styled_text = f"... {styled_text}"
     elif emotion == "flustered":
         speed = 1.08 # Stuttering, agitated cadence
-        if not any(k in styled_text for k in ["앗", "...!"]):
-            styled_text = f"...앗, {styled_text}!"
+        if not any(k in styled_text for k in ["앗", "바,"]):
+            styled_text = f"앗, {styled_text}!"
     elif emotion == "angry":
         speed = 1.12 # Fast, forceful, loud
     elif emotion in ["smug", "tease"]:

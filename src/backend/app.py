@@ -109,10 +109,12 @@ class ScriptSegmentTTSRequest(BaseModel):
 def parse_dialogue_and_actions(text: str) -> Tuple[str, List[str]]:
     """
     Extracts spoken dialogue (outside parentheses) and action cues (inside parentheses).
-    Example: '(혀를 차며) 하아? 바보 오빠~' -> ('하아? 바보 오빠~', ['혀를 차며'])
+    Example: '(혀를 차며) ... 하아? 바보 오빠~' -> ('하아? 바보 오빠~', ['혀를 차며'])
     """
     action_matches = re.findall(r"\((.*?)\)", text)
     cleaned_speech = re.sub(r"\(.*?\)", "", text).strip()
+    # Strip leading/trailing punctuation debris that causes TTS hallucination
+    cleaned_speech = re.sub(r"^[\s.,~…·!?;:]+", "", cleaned_speech).strip()
     return cleaned_speech, action_matches
 
 def is_safe_sentence_boundary(buffer: str) -> bool:
