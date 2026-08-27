@@ -2,6 +2,7 @@
 import os
 import time
 import base64
+import asyncio
 from typing import Optional, Dict, Any
 from pathlib import Path
 import httpx
@@ -9,22 +10,25 @@ import httpx
 GPT_SOVITS_URL = os.getenv("GPT_SOVITS_URL", "http://127.0.0.1:9880")
 
 _STATUS_CACHE = {"online": False, "timestamp": 0.0}
-CACHE_TTL = 3.0 # Cache status for 3 seconds
+CACHE_TTL = 30.0 # Cache status for 30 seconds to prevent healthcheck collisions during GPU compute
 
 async def is_gpt_sovits_alive(force_refresh: bool = False) -> bool:
-    """Checks if the local GPT-SoVITS API server is active with caching."""
+    """Checks if the local GPT-SoVITS API server is active with generous timeout."""
     global _STATUS_CACHE
     now = time.time()
-    if not force_refresh and (now - _STATUS_CACHE["timestamp"] < CACHE_TTL):
-        return _STATUS_CACHE["online"]
+    if not force_refresh and (now - _STATUS_CACHE["timestamp"] < CACHE_TTL) and _STATUS_CACHE["online"]:
+        return True
 
     try:
-        async with httpx.AsyncClient(timeout=1.0) as client:
-            res = await client.get(f"{GPT_SOVITS_URL}/control")
-            is_alive = res.status_code in [200, 400, 405]
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            res = await client.get(f"{GPT_SOVITS_URL}/")
+            is_alive = res.status_code in [200, 400, 404, 405]
             _STATUS_CACHE = {"online": is_alive, "timestamp": now}
             return is_alive
     except Exception:
+        # If cached as online recently, don't hastily declare offline during active GPU generation
+        if (now - _STATUS_CACHE["timestamp"] < 60.0) and _STATUS_CACHE["online"]:
+            return True
         _STATUS_CACHE = {"online": False, "timestamp": now}
         return False
 
@@ -34,11 +38,12 @@ async def synthesize_gpt_sovits_base64(
     prompt_text: str,
     prompt_lang: str = "ko",
     target_lang: str = "ko",
-    speed: float = 1.0
+    speed: float = 1.0,
+    max_retries: int = 2
 ) -> Optional[str]:
     """
     Calls local GPT-SoVITS api_v2 with zero-shot reference audio and prompt text.
-    Returns base64 encoded audio string (WAV).
+    Waits patiently up to 120s for GPU computation without dropping to fallback.
     """
     clean_text = text.strip()
     if not clean_text:
@@ -67,14 +72,21 @@ async def synthesize_gpt_sovits_base64(
         "streaming_mode": False
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            res = await client.post(f"{GPT_SOVITS_URL}/tts", json=payload)
-            if res.status_code == 200 and res.content:
-                return base64.b64encode(res.content).decode("utf-8")
-            else:
-                print(f"[GPT-SoVITS Non-200] Status: {res.status_code}, Body: {res.text[:200]}")
-                return None
-    except Exception as e:
-        print(f"[GPT-SoVITS Error] {e}")
-        return None
+    for attempt in range(max_retries + 1):
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                res = await client.post(f"{GPT_SOVITS_URL}/tts", json=payload)
+                if res.status_code == 200 and res.content:
+                    _STATUS_CACHE["online"] = True
+                    _STATUS_CACHE["timestamp"] = time.time()
+                    return base64.b64encode(res.content).decode("utf-8")
+                else:
+                    print(f"[GPT-SoVITS Non-200] Attempt {attempt+1}/{max_retries+1}: Status {res.status_code}, Body: {res.text[:200]}")
+        except httpx.TimeoutException:
+            print(f"[GPT-SoVITS Timeout] Attempt {attempt+1}/{max_retries+1}: GPU inference took longer than expected, retrying...")
+            await asyncio.sleep(1.0)
+        except Exception as e:
+            print(f"[GPT-SoVITS Connection Error] Attempt {attempt+1}/{max_retries+1}: {e}")
+            await asyncio.sleep(1.0)
+
+    return None

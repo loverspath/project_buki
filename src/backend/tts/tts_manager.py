@@ -23,22 +23,23 @@ async def synthesize_smart_speech(
     persona_id: str,
     persona_config: Dict[str, Any],
     detected_actions: Optional[List[str]] = None,
-    preferred_engine: str = "auto",
+    preferred_engine: str = "gpt_sovits",
     override_emotion: Optional[str] = None
 ) -> Tuple[Optional[str], str]:
     """
     Intelligent speech synthesis router:
-    Maintains uniform natural pitch and timbre matching the chosen persona.
+    - If preferred_engine == 'gpt_sovits': Patiently waits for GPU synthesis (up to 120s) without switching to Edge-TTS.
+    - If preferred_engine == 'auto': Tries GPT-SoVITS first, falls back to Edge-TTS only if offline.
+    - If preferred_engine == 'edge_tts': Directly uses Edge-TTS.
     """
     clean_text = text.strip()
     if not clean_text:
         return None, "none"
 
     voice_sample_cfg = VOICE_SAMPLES.get(persona_id) or VOICE_SAMPLES.get("mesugaki", {})
-    gpt_sovits_online = await is_gpt_sovits_alive()
 
-    # 1. Try GPT-SoVITS with natural consistent speed and emotion banks
-    if (preferred_engine in ["gpt_sovits", "auto"]) and gpt_sovits_online and voice_sample_cfg:
+    # 1. GPT-SoVITS Execution (Priority & Strict mode)
+    if preferred_engine in ["gpt_sovits", "auto"]:
         ref_wav = voice_sample_cfg.get("default_ref_wav")
         prompt_text = voice_sample_cfg.get("default_prompt_text", "")
         prompt_lang = voice_sample_cfg.get("prompt_lang", "ja")
@@ -63,7 +64,6 @@ async def synthesize_smart_speech(
                 prompt_text = banks[target_emotion].get("prompt_text", prompt_text)
                 prompt_lang = banks[target_emotion].get("lang", prompt_lang)
 
-        # Uniform natural speed (1.0) with consistent high-pitch timbre
         if ref_wav:
             audio_b64 = await synthesize_gpt_sovits_base64(
                 text=clean_text,
@@ -71,12 +71,18 @@ async def synthesize_smart_speech(
                 prompt_text=prompt_text,
                 prompt_lang=prompt_lang,
                 target_lang=target_lang,
-                speed=1.0
+                speed=1.0,
+                max_retries=2
             )
             if audio_b64:
                 return audio_b64, "gpt_sovits"
 
-    # 2. Fallback to Edge-TTS with persona default pitch
+        # If user strictly selected 'gpt_sovits', do not fall back to Edge-TTS
+        if preferred_engine == "gpt_sovits":
+            print(f"[TTS Manager] GPT-SoVITS requested strictly. Skipping Edge-TTS fallback.")
+            return None, "gpt_sovits_failed"
+
+    # 2. Edge-TTS (When auto fallback or explicit edge_tts is selected)
     voice = persona_config.get("voice", "ko-KR-SunHiNeural")
     pitch = persona_config.get("voice_pitch", "+40Hz")
     rate = persona_config.get("voice_rate", "+22%")
