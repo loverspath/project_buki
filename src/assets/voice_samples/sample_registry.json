@@ -1,19 +1,24 @@
 {
   "mesugaki": {
-    "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mesugaki_ref.wav",
-    "default_prompt_text": "어라? 바보 오빠, 아직도 그거 하나 제대로 이해 못한 거야? 풋, 진짜 못말리는 허접이네~",
-    "prompt_lang": "ko",
+    "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mutsuki_raw/audio_(1).wav",
+    "default_prompt_text": "ふっ、先生の反応、最高に面白い",
+    "prompt_lang": "ja",
     "target_lang": "ko",
     "emotion_banks": {
       "smug": {
-        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mesugaki_smug.wav",
-        "prompt_text": "풋, 어이없네 진짜~ 그렇게 쳐다보면 내가 모를 줄 알았어? 완전 바보 오빠잖아!",
-        "lang": "ko"
+        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mutsuki_raw/audio_(1).wav",
+        "prompt_text": "ふっ、先生の反応、最高に面白い",
+        "lang": "ja"
+      },
+      "tease": {
+        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mutsuki_raw/audio_(9).wav",
+        "prompt_text": "うふふふ、先生の夢、私が叶えてあげる、悪夢だけどね",
+        "lang": "ja"
       },
       "angry": {
-        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mesugaki_angry.wav",
-        "prompt_text": "하아?! 시끄럽거든! 자꾸 나 놀리면 진짜 가만 안 둘 테니까 각오해, 바보야!",
-        "lang": "ko"
+        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/mutsuki_raw/audio_(6).wav",
+        "prompt_text": "先生の弱点、見つけちゃったかも、教えてあげようか？",
+        "lang": "ja"
       }
     }
   },
