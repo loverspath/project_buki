@@ -1,0 +1,32 @@
+﻿{
+  "mesugaki": {
+    "default_ref_wav": "assets/voice_samples/mesugaki_ref.wav",
+    "default_prompt_text": "허접 바보 오빠, 그것도 몰라?",
+    "prompt_lang": "ko",
+    "target_lang": "ko",
+    "emotion_banks": {
+      "smug": {
+        "ref_wav": "assets/voice_samples/mesugaki_smug.wav",
+        "prompt_text": "풋, 어이없네 진짜~",
+        "lang": "ko"
+      },
+      "angry": {
+        "ref_wav": "assets/voice_samples/mesugaki_angry.wav",
+        "prompt_text": "바보냐고! 시끄러워!",
+        "lang": "ko"
+      }
+    }
+  },
+  "sayaka": {
+    "default_ref_wav": "assets/voice_samples/sayaka_ref.wav",
+    "default_prompt_text": "안녕하세요! 오늘도 좋은 하루 보내요!",
+    "prompt_lang": "ko",
+    "target_lang": "ko"
+  },
+  "ruri": {
+    "default_ref_wav": "assets/voice_samples/ruri_ref.wav",
+    "default_prompt_text": "데이터 분석 결과를 보고합니다.",
+    "prompt_lang": "ko",
+    "target_lang": "ko"
+  }
+}

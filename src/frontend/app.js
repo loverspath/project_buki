@@ -7,12 +7,14 @@ class BukiClient {
     this.sendBtn = document.getElementById('sendBtn');
     this.personaSelect = document.getElementById('personaSelect');
     this.modelSelect = document.getElementById('modelSelect');
+    this.ttsEngineSelect = document.getElementById('ttsEngineSelect');
     this.voiceToggle = document.getElementById('voiceToggle');
     this.avatarOrb = document.getElementById('avatarOrb');
     this.avatarGlow = document.getElementById('avatarGlow');
     this.avatarFace = document.getElementById('avatarFace');
     this.badgeName = document.getElementById('badgeName');
     this.speakingState = document.getElementById('speakingState');
+    this.ttsStatusText = document.getElementById('ttsStatusText');
 
     this.history = [];
     this.audioQueue = [];
@@ -41,7 +43,6 @@ class BukiClient {
     this.updateTheme();
   }
 
-  // Unlock browser audio policy on first user interaction
   unlockAudio() {
     if (this.audioUnlocked) return;
     try {
@@ -50,7 +51,6 @@ class BukiClient {
         const ctx = new AudioContext();
         ctx.resume().then(() => {
           this.audioUnlocked = true;
-          console.log('[Audio] Browser audio context unlocked successfully.');
         });
       }
     } catch (e) {
@@ -59,7 +59,6 @@ class BukiClient {
   }
 
   setupEventListeners() {
-    // Unlock audio on any click/touch
     document.addEventListener('click', () => this.unlockAudio(), { once: true });
     document.addEventListener('touchstart', () => this.unlockAudio(), { once: true });
 
@@ -98,6 +97,14 @@ class BukiClient {
             }
             this.modelSelect.appendChild(opt);
           });
+        }
+
+        if (data.gpt_sovits_online) {
+          this.ttsStatusText.textContent = 'GPT-SoVITS 온라인 (3초 제로샷)';
+          this.ttsStatusText.style.color = '#3fb950';
+        } else {
+          this.ttsStatusText.textContent = 'Edge-TTS 활성 (GPT-SoVITS 대기)';
+          this.ttsStatusText.style.color = '#8b949e';
         }
       }
     } catch (err) {
@@ -157,6 +164,7 @@ class BukiClient {
     const personaId = this.personaSelect.value;
     const personaName = this.personaSelect.options[this.personaSelect.selectedIndex].text;
     const model = this.modelSelect.value;
+    const ttsEngine = this.ttsEngineSelect.value;
     const voiceEnabled = this.voiceToggle.checked;
 
     const msgObj = this.appendMessage('assistant', '', personaName);
@@ -174,6 +182,7 @@ class BukiClient {
           message: message,
           persona_id: personaId,
           model: model,
+          tts_engine: ttsEngine,
           history: this.history,
           voice_enabled: voiceEnabled
         })
@@ -206,7 +215,7 @@ class BukiClient {
                 this.chatHistoryEl.scrollTop = this.chatHistoryEl.scrollHeight;
               } else if (event.type === 'audio' && this.voiceToggle.checked) {
                 messageAudios.push(event.audio_base64);
-                this.enqueueAudio(event.audio_base64, event.spoken_text, event.actions);
+                this.enqueueAudio(event.audio_base64, event.spoken_text, event.actions, event.engine_used);
               } else if (event.type === 'action_cue') {
                 this.triggerActionExpression(event.actions);
               } else if (event.type === 'done') {
@@ -221,12 +230,11 @@ class BukiClient {
         }
       }
 
-      // If audio chunks were generated, enable Replay button
       if (messageAudios.length > 0) {
         msgObj.footerEl.style.display = 'block';
         msgObj.replayBtn.onclick = () => {
           this.stopAudioQueue();
-          messageAudios.forEach(b64 => this.audioQueue.push({ base64: b64, text: '다시 재생', actions: [] }));
+          messageAudios.forEach(b64 => this.audioQueue.push({ base64: b64, text: '다시 재생', actions: [], engine: 'replay' }));
           this.playNextAudio();
         };
       }
@@ -263,8 +271,8 @@ class BukiClient {
     this.speakingState.textContent = `(행동: ${actions[0].slice(0, 15)})`;
   }
 
-  enqueueAudio(base64Audio, spokenText, actions) {
-    this.audioQueue.push({ base64: base64Audio, text: spokenText, actions: actions });
+  enqueueAudio(base64Audio, spokenText, actions, engine) {
+    this.audioQueue.push({ base64: base64Audio, text: spokenText, actions: actions, engine: engine });
     if (!this.isPlayingAudio) {
       this.playNextAudio();
     }
@@ -285,7 +293,9 @@ class BukiClient {
 
     this.avatarOrb.classList.add('speaking');
     this.avatarFace.textContent = (this.personaFaces[persona] || {}).speaking || '🗣️';
-    this.speakingState.textContent = `말하는 중: "${(item.text || '').slice(0, 20)}..."`;
+    
+    const engineLabel = item.engine === 'gpt_sovits' ? '🎙️ GPT-SoVITS' : '🔊 Edge-TTS';
+    this.speakingState.textContent = `[${engineLabel}] "${(item.text || '').slice(0, 18)}..."`;
 
     if (item.actions && item.actions.length > 0) {
       this.triggerActionExpression(item.actions);
@@ -308,7 +318,6 @@ class BukiClient {
       if (playPromise !== undefined) {
         playPromise.catch(e => {
           console.warn('[Audio] Autoplay prevented by browser:', e);
-          // Show unlock notification
           this.speakingState.textContent = '화면을 터치하면 음성이 재생됩니다 🔊';
           this.playNextAudio();
         });

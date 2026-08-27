@@ -1,51 +1,50 @@
-﻿# ⚙️ Project BUKI - System Architecture Specification
+# ⚙️ Project BUKI - System Architecture Specification
 
 ---
 
-## 🏛️ 1. 모듈 계층 구조
+## 🏛️ 1. 모듈 계층 및 듀얼 TTS 라우팅 아키텍처
 
 ```mermaid
 graph TD
-    Client["Client (Browser)"]
-    Server["FastAPI Backend Server"]
+    Client["Web Client (Z Fold8 / PC)"]
+    Server["FastAPI Backend Server (0.0.0.0:8000)"]
 
     subgraph FrontendComponents["Frontend Layer"]
-        UI["Chat & Controls UI"]
-        Audio["WebAudio Stream Player & LipSync Analyzer"]
-        Avatar["Three.js VRM Avatar Renderer"]
+        UI["Chat & Action Tag UI"]
+        Audio["WebAudio Auto-Unlock Player"]
+        Avatar["Avatar Emotion & Pulse Visualizer"]
     end
 
     subgraph BackendServices["Backend Services"]
-        LLMService["LLM Provider Service (Gemini/OpenAI)"]
-        TTSService["Edge-TTS Synthesis Service"]
-        PersonaService["Persona & Prompt Manager"]
+        LLMService["Ollama Stream Service (Gemma-Mesugaki 8B / Qwen 14B)"]
+        Parser["Dialogue & Action Separation Engine"]
+        TTSManager["Smart TTS Router (Auto-Fallback)"]
+        GPTSoVITS["GPT-SoVITS Zero-Shot Engine (Port 9880)"]
+        EdgeTTS["Edge-TTS Engine (ko-KR-SunHi)"]
     end
 
     Client --> FrontendComponents
     Server --> BackendServices
 
-    UI -->|User Message| LLMService
-    PersonaService -.->|Inject System Prompt| LLMService
-    LLMService -->|Text Chunks (SSE)| UI
-    LLMService -->|Complete Sentence| TTSService
-    TTSService -->|Audio Binary Stream| Audio
-    Audio -->|Viseme Volume/Frequencies| Avatar
+    UI -->|User Input| LLMService
+    LLMService -->|Tokens & Chunks| Parser
+    Parser -->|Action Tags| UI
+    Parser -->|Clean Spoken Text| TTSManager
+    TTSManager -->|Zero-shot 3s Ref Audio| GPTSoVITS
+    TTSManager -->|Fallback / Standard| EdgeTTS
+    GPTSoVITS -.->|Audio Stream| Audio
+    EdgeTTS -.->|Audio Stream| Audio
+    Audio --> Avatar
 ```
 
 ---
 
-## 🔌 2. API 엔드포인트 명세
+## 🎙️ 2. Zero-Shot 감정 뱅크 (Dynamic Emotion Bank) 규격
 
-### `POST /api/chat/stream`
-* **요청 바디**:
-  ```json
-  {
-    "message": "안녕! 오늘 기분 어때?",
-    "persona_id": "sayaka",
-    "history": []
-  }
-  ```
-* **응답**: Server-Sent Events (SSE)
-  * `event: text` -> LLM 스트리밍 텍스트 조각
-  * `event: audio` -> 실시간 합성된 TTS Base64/Binary URL
-  * `event: emotion` -> 감정 태그 (`happy`, `surprised`, etc.)
+* **레퍼런스 음성 레지스트리 (`src/assets/voice_samples/sample_registry.json`)**:
+  * `default_ref_wav`: 기본 성우 음성 (3~5초)
+  * `emotion_banks.smug`: 비웃음/장난 억양 레퍼런스
+  * `emotion_banks.angry`: 화남/츤데레 억양 레퍼런스
+* **동적 라우팅 메카닉**:
+  * LLM 지문에서 `(팔짱을 끼며 비웃는다)` 감지 시 ➡️ `smug_ref.wav`를 레퍼런스 스타일로 자동 주입하여 합성.
+  * GPT-SoVITS 오프라인 시 ➡️ 실시간 `Edge-TTS`로 무중단 자동 폴백.

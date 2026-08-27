@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -36,12 +36,21 @@
           </select>
         </div>
 
+        <div class="control-group">
+          <label for="ttsEngineSelect">TTS 엔진</label>
+          <select id="ttsEngineSelect" class="glass-select">
+            <option value="auto" selected>자동 (GPT-SoVITS ➔ Edge-TTS)</option>
+            <option value="gpt_sovits">GPT-SoVITS (3초 제로샷)</option>
+            <option value="edge_tts">Edge-TTS (초고속)</option>
+          </select>
+        </div>
+
         <div class="control-group voice-toggle-group">
           <label class="toggle-switch">
             <input type="checkbox" id="voiceToggle" checked>
             <span class="slider"></span>
           </label>
-          <span class="toggle-label">🔊 TTS</span>
+          <span class="toggle-label">🔊 음성</span>
         </div>
       </div>
     </header>
@@ -63,7 +72,11 @@
           <span class="badge-name" id="badgeName">메스가키 (Gemma)</span>
         </div>
         
-        <div class="speaking-state" id="speakingState">대기 중...</div>
+        <div class="speaking-state" id="speakingState">대기 중</div>
+
+        <div class="tts-engine-status" id="ttsEngineBadge" style="margin-top: 10px; font-size: 0.75rem; color: #8b949e;">
+          🎙️ TTS: <span id="ttsStatusText">Edge-TTS 활성</span>
+        </div>
       </section>
 
       <!-- Right / Center: Chat Stream Box -->

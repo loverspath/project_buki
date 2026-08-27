@@ -17,7 +17,8 @@ from pydantic import BaseModel
 import httpx
 
 from core.persona import PERSONAS
-from tts.tts_service import synthesize_speech_base64
+from tts.tts_manager import synthesize_smart_speech
+from tts.gpt_sovits_service import is_gpt_sovits_alive
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 
@@ -41,31 +42,22 @@ class ChatStreamRequest(BaseModel):
     model: Optional[str] = None
     history: Optional[List[ChatMessage]] = []
     voice_enabled: Optional[bool] = True
+    tts_engine: Optional[str] = "auto" # "auto", "gpt_sovits", "edge_tts"
     custom_system_prompt: Optional[str] = None
 
 class DirectTTSRequest(BaseModel):
     text: str
-    voice: Optional[str] = "ko-KR-SunHiNeural"
-    pitch: Optional[str] = "+0Hz"
-    rate: Optional[str] = "+0%"
+    persona_id: Optional[str] = "mesugaki"
+    tts_engine: Optional[str] = "auto"
 
 def parse_dialogue_and_actions(text: str) -> Tuple[str, List[str]]:
-    """
-    Separates spoken dialogue from action/narration tags.
-    - Actions: enclosed in (...), [...], *...*, <...>
-    - Dialogue: spoken text outside of action brackets.
-    """
-    # 1. Extract action cues
+    """Separates spoken dialogue from action/narration tags."""
     action_matches = re.findall(r'[\(\[\*]([^\)\]\*]+)[\)\]\*]', text)
     actions = [a.strip() for a in action_matches if a.strip()]
 
-    # 2. Strip action blocks completely for TTS
     spoken = re.sub(r'\([^\)]*\)|\[[^\]]*\]|\*[^\*]*\*|\<[^\>]*\>', '', text).strip()
-
-    # 3. Clean markdown and special symbols
     clean_speech = re.sub(r'[\*\#\_`~]', '', spoken).strip()
     
-    # 4. Ensure there is actual pronounceable text (Hangul, English, digits)
     has_pronounceable = bool(re.search(r'[가-힣a-zA-Z0-9]', clean_speech))
     if not has_pronounceable:
         clean_speech = ""
@@ -86,36 +78,44 @@ async def get_system_info():
     except Exception as e:
         print(f"[Ollama Tags Error] {e}")
 
+    gpt_sovits_status = await is_gpt_sovits_alive()
+
     return {
         "personas": list(PERSONAS.values()),
         "models": models,
-        "default_persona": "mesugaki"
+        "default_persona": "mesugaki",
+        "gpt_sovits_online": gpt_sovits_status,
+        "available_tts_engines": [
+            {"id": "auto", "name": "자동 (GPT-SoVITS 우선 -> Edge-TTS)"},
+            {"id": "gpt_sovits", "name": "GPT-SoVITS (3초 제로샷 캐릭터 보이스)"},
+            {"id": "edge_tts", "name": "Edge-TTS (초고속 기본 음성)"}
+        ]
     }
 
 @app.post("/api/tts")
 async def direct_tts(req: DirectTTSRequest):
-    speech_text, _ = parse_dialogue_and_actions(req.text)
+    persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
+    speech_text, actions = parse_dialogue_and_actions(req.text)
     if not speech_text:
         speech_text = req.text
         
-    audio_base64 = await synthesize_speech_base64(
+    audio_base64, engine_used = await synthesize_smart_speech(
         text=speech_text,
-        voice=req.voice or "ko-KR-SunHiNeural",
-        pitch=req.pitch or "+0Hz",
-        rate=req.rate or "+0%"
+        persona_id=req.persona_id,
+        persona_config=persona,
+        detected_actions=actions,
+        preferred_engine=req.tts_engine or "auto"
     )
     if not audio_base64:
         raise HTTPException(status_code=500, detail="Failed to synthesize speech")
-    return {"audio_base64": audio_base64, "spoken_text": speech_text}
+    return {"audio_base64": audio_base64, "spoken_text": speech_text, "engine_used": engine_used}
 
 @app.post("/api/chat/stream")
 async def chat_stream(req: ChatStreamRequest):
     persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
     model_to_use = req.model or persona.get("default_model", "gemma-mesugaki:latest")
     system_prompt = req.custom_system_prompt or persona.get("system_prompt", "")
-    voice = persona.get("voice", "ko-KR-SunHiNeural")
-    pitch = persona.get("voice_pitch", "+0Hz")
-    rate = persona.get("voice_rate", "+0%")
+    tts_engine_pref = req.tts_engine or "auto"
 
     messages = []
     if system_prompt:
@@ -176,11 +176,11 @@ async def chat_stream(req: ChatStreamRequest):
                             full_response_text += token
                             sentence_buffer += token
 
-                            # Stream raw token for UI rendering
+                            # Stream token
                             token_event = {"type": "token", "token": token}
                             yield f"data: {json.dumps(token_event, ensure_ascii=False)}\n\n"
 
-                            # Sentence boundary: . ! ? \n or closing parenthesis + punctuation
+                            # Sentence boundary
                             if req.voice_enabled and re.search(r'([.!?！？\n]+|\~+)\s*$', sentence_buffer):
                                 speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
                                 raw_sentence = sentence_buffer.strip()
@@ -190,7 +190,13 @@ async def chat_stream(req: ChatStreamRequest):
                                     cur_idx = sentence_index
                                     sentence_index += 1
 
-                                    audio_b64 = await synthesize_speech_base64(speech_to_synthesize, voice, pitch, rate)
+                                    audio_b64, engine_used = await synthesize_smart_speech(
+                                        text=speech_to_synthesize,
+                                        persona_id=persona["id"],
+                                        persona_config=persona,
+                                        detected_actions=detected_actions,
+                                        preferred_engine=tts_engine_pref
+                                    )
                                     if audio_b64:
                                         audio_event = {
                                             "type": "audio",
@@ -198,11 +204,11 @@ async def chat_stream(req: ChatStreamRequest):
                                             "raw_text": raw_sentence,
                                             "spoken_text": speech_to_synthesize,
                                             "actions": detected_actions,
+                                            "engine_used": engine_used,
                                             "audio_base64": audio_b64
                                         }
                                         yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
                                 elif detected_actions:
-                                    # Action-only event (e.g. avatar expression change without speech)
                                     action_event = {
                                         "type": "action_cue",
                                         "actions": detected_actions
@@ -216,7 +222,13 @@ async def chat_stream(req: ChatStreamRequest):
             if req.voice_enabled and sentence_buffer.strip():
                 speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
                 if speech_to_synthesize:
-                    audio_b64 = await synthesize_speech_base64(speech_to_synthesize, voice, pitch, rate)
+                    audio_b64, engine_used = await synthesize_smart_speech(
+                        text=speech_to_synthesize,
+                        persona_id=persona["id"],
+                        persona_config=persona,
+                        detected_actions=detected_actions,
+                        preferred_engine=tts_engine_pref
+                    )
                     if audio_b64:
                         audio_event = {
                             "type": "audio",
@@ -224,6 +236,7 @@ async def chat_stream(req: ChatStreamRequest):
                             "raw_text": sentence_buffer.strip(),
                             "spoken_text": speech_to_synthesize,
                             "actions": detected_actions,
+                            "engine_used": engine_used,
                             "audio_base64": audio_b64
                         }
                         yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
