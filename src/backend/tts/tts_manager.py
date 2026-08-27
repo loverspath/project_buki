@@ -72,8 +72,10 @@ async def synthesize_smart_speech(
     voice = persona_config.get("voice", "ko-KR-SunHiNeural")
     pitch = persona_config.get("voice_pitch", "+0Hz")
     rate = persona_config.get("voice_rate", "+0%")
+    volume = persona_config.get("voice_volume", "+0%")
+    tone = persona_config.get("voice_tone", "mesugaki_sassy")
 
-    audio_b64 = await synthesize_edge_tts(clean_text, voice, pitch, rate)
+    audio_b64 = await synthesize_edge_tts(clean_text, voice, pitch, rate, volume, tone)
     if audio_b64:
         return audio_b64, "edge_tts"
 
