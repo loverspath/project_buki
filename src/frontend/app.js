@@ -1,26 +1,43 @@
-// Project BUKI - Enhanced Audio Engine & Client Orchestration
-class BukiClient {
+// Project BUKI - Mobile-First AI Messenger & Voice Orchestration Client
+class BukiMobileClient {
   constructor() {
+    // Elements
+    this.chatContainer = document.getElementById('chatContainer');
     this.chatHistoryEl = document.getElementById('chatHistory');
     this.chatForm = document.getElementById('chatForm');
     this.messageInput = document.getElementById('messageInput');
     this.sendBtn = document.getElementById('sendBtn');
+    
+    // Controls & Settings
+    this.quickVoiceBtn = document.getElementById('quickVoiceBtn');
+    this.voiceStatusText = document.getElementById('voiceStatusText');
+    this.openSettingsBtn = document.getElementById('openSettingsBtn');
+    this.closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    this.modalBackdrop = document.getElementById('modalBackdrop');
+    this.settingsSheet = document.getElementById('settingsSheet');
+    this.personaGrid = document.getElementById('personaGrid');
     this.personaSelect = document.getElementById('personaSelect');
     this.modelSelect = document.getElementById('modelSelect');
     this.ttsEngineSelect = document.getElementById('ttsEngineSelect');
-    this.voiceToggle = document.getElementById('voiceToggle');
-    this.avatarOrb = document.getElementById('avatarOrb');
+    this.ttsStatusDetail = document.getElementById('ttsStatusDetail');
+    this.testVoiceBtn = document.getElementById('testVoiceBtn');
+
+    // Avatar & Wave
     this.avatarGlow = document.getElementById('avatarGlow');
+    this.avatarOrb = document.getElementById('avatarOrb');
     this.avatarFace = document.getElementById('avatarFace');
     this.badgeName = document.getElementById('badgeName');
+    this.currentEngineBadge = document.getElementById('currentEngineBadge');
     this.speakingState = document.getElementById('speakingState');
-    this.ttsStatusText = document.getElementById('ttsStatusText');
+    this.audioWaveBox = document.getElementById('audioWaveBox');
 
+    // State
     this.history = [];
     this.audioQueue = [];
     this.isPlayingAudio = false;
     this.currentAudio = null;
     this.audioUnlocked = false;
+    this.voiceEnabled = true;
 
     this.personaColors = {
       mesugaki: '#ff4d88',
@@ -52,7 +69,7 @@ class BukiClient {
         const ctx = new AudioContext();
         ctx.resume().then(() => {
           this.audioUnlocked = true;
-          console.log('[Audio] AudioContext unlocked.');
+          console.log('[Audio] Mobile AudioContext unlocked.');
         });
       }
     } catch (e) {
@@ -61,13 +78,21 @@ class BukiClient {
   }
 
   setupEventListeners() {
+    // Unlock WebAudio on any first tap
     document.addEventListener('click', () => this.unlockAudio(), { once: true });
     document.addEventListener('touchstart', () => this.unlockAudio(), { once: true });
 
+    // Chat submit
     this.chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
       this.unlockAudio();
       this.sendMessage();
+    });
+
+    // Auto-resize textarea on input
+    this.messageInput.addEventListener('input', () => {
+      this.messageInput.style.height = 'auto';
+      this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 100) + 'px';
     });
 
     this.messageInput.addEventListener('keydown', (e) => {
@@ -78,38 +103,108 @@ class BukiClient {
       }
     });
 
-    this.personaSelect.addEventListener('change', () => {
-      this.updateTheme();
+    // Quick Voice Toggle
+    this.quickVoiceBtn.addEventListener('click', () => {
+      this.voiceEnabled = !this.voiceEnabled;
+      if (this.voiceEnabled) {
+        this.quickVoiceBtn.classList.add('active');
+        this.quickVoiceBtn.querySelector('.pill-icon').textContent = '🔊';
+        this.voiceStatusText.textContent = '음성 ON';
+      } else {
+        this.quickVoiceBtn.classList.remove('active');
+        this.quickVoiceBtn.querySelector('.pill-icon').textContent = '🔇';
+        this.voiceStatusText.textContent = '음성 OFF';
+        this.stopAudioQueue();
+      }
+      this.updateTTSBadge();
     });
 
+    // Settings Bottom Sheet Modal
+    this.openSettingsBtn.addEventListener('click', () => this.openSettings());
+    this.closeSettingsBtn.addEventListener('click', () => this.closeSettings());
+    this.modalBackdrop.addEventListener('click', () => this.closeSettings());
+
+    // Segmented Persona Buttons
+    this.personaGrid.querySelectorAll('.segment-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.personaGrid.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const p = btn.getAttribute('data-persona');
+        this.personaSelect.value = p;
+        this.updateTheme();
+      });
+    });
+
+    // Quick Prompt Chips
+    document.querySelectorAll('.chip-btn').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const txt = chip.getAttribute('data-text');
+        this.messageInput.value = txt;
+        this.unlockAudio();
+        this.sendMessage();
+      });
+    });
+
+    // TTS Engine Select in Settings
     this.ttsEngineSelect.addEventListener('change', () => {
       this.updateTTSBadge();
     });
 
-    this.voiceToggle.addEventListener('change', () => {
-      this.updateTTSBadge();
+    // Test Voice Button in Settings
+    this.testVoiceBtn.addEventListener('click', async () => {
+      this.unlockAudio();
+      this.testVoiceBtn.disabled = true;
+      this.testVoiceBtn.textContent = '🎙️ 음성 합성 중...';
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: '오빠, 지금 내 목소리 잘 들려? 허접♡',
+            persona_id: this.personaSelect.value,
+            tts_engine: this.ttsEngineSelect.value
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          this.enqueueAudio(data.audio_base64, '목소리 테스트', [], data.engine_used);
+        }
+      } catch (err) {
+        alert('TTS 테스트 실패: ' + err.message);
+      } finally {
+        this.testVoiceBtn.disabled = false;
+        this.testVoiceBtn.textContent = '🔊 목소리 테스트 재생';
+      }
     });
   }
 
+  openSettings() {
+    this.modalBackdrop.classList.add('show');
+    this.settingsSheet.classList.add('show');
+  }
+
+  closeSettings() {
+    this.modalBackdrop.classList.remove('show');
+    this.settingsSheet.classList.remove('show');
+  }
+
   updateTTSBadge() {
-    const isVoice = this.voiceToggle.checked;
     const engine = this.ttsEngineSelect.value;
-    
-    if (!isVoice) {
-      this.ttsStatusText.textContent = '🔇 음성 출력 꺼짐';
-      this.ttsStatusText.style.color = '#8b949e';
+    if (!this.voiceEnabled) {
+      this.currentEngineBadge.textContent = '🔇 MUTE';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>음성 출력 꺼짐</strong>';
       return;
     }
 
     if (engine === 'gpt_sovits') {
-      this.ttsStatusText.textContent = '🎙️ GPT-SoVITS 모드 (기본)';
-      this.ttsStatusText.style.color = '#a855f7';
+      this.currentEngineBadge.textContent = '🎙️ SoVITS';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>GPT-SoVITS 3초 제로샷 모드</strong>';
     } else if (engine === 'auto') {
-      this.ttsStatusText.textContent = '⚡ 자동 (SoVITS ➔ Edge)';
-      this.ttsStatusText.style.color = '#3fb950';
+      this.currentEngineBadge.textContent = '⚡ AUTO';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>자동 폴백 (SoVITS ➔ Edge)</strong>';
     } else {
-      this.ttsStatusText.textContent = '🔊 Edge-TTS 고정 모드';
-      this.ttsStatusText.style.color = '#4da6ff';
+      this.currentEngineBadge.textContent = '🔊 Edge';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>Edge-TTS 초고속 모드</strong>';
     }
   }
 
@@ -132,8 +227,7 @@ class BukiClient {
         }
 
         if (data.gpt_sovits_online) {
-          this.ttsStatusText.textContent = '🎙️ GPT-SoVITS 온라인 (포트 9880)';
-          this.ttsStatusText.style.color = '#3fb950';
+          this.ttsStatusDetail.innerHTML = '현재 상태: 🟢 <strong>GPT-SoVITS 온라인 연결됨</strong> (포트 9880)';
         }
       }
     } catch (err) {
@@ -146,7 +240,9 @@ class BukiClient {
     const color = this.personaColors[persona] || '#ff4d88';
     document.documentElement.style.setProperty('--accent-color', color);
     this.avatarGlow.style.background = color;
-    this.badgeName.textContent = this.personaSelect.options[this.personaSelect.selectedIndex].text;
+    
+    const names = { mesugaki: '메스가키', sayaka: '사야카', ruri: '루리' };
+    this.badgeName.textContent = names[persona] || persona;
     this.avatarFace.textContent = (this.personaFaces[persona] || {}).idle || '😊';
   }
 
@@ -165,15 +261,13 @@ class BukiClient {
         <span class="bubble-time">${now}</span>
       </div>
       <div class="bubble-content">${this.formatContentHtml(text)}</div>
-      <div class="bubble-footer" style="display:none; margin-top:8px;">
-        <button class="replay-btn glass-btn" style="padding:2px 8px; font-size:0.75rem; border-radius:4px; cursor:pointer; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#f0f6fc;">
-          🔊 다시 듣기
-        </button>
+      <div class="bubble-footer" style="display:none;">
+        <button class="replay-btn">🔊 다시 듣기</button>
       </div>
     `;
 
     this.chatHistoryEl.appendChild(bubble);
-    this.chatHistoryEl.scrollTop = this.chatHistoryEl.scrollHeight;
+    this.scrollToBottom();
     return {
       bubbleEl: bubble,
       contentEl: bubble.querySelector('.bubble-content'),
@@ -182,22 +276,26 @@ class BukiClient {
     };
   }
 
+  scrollToBottom() {
+    this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+  }
+
   async sendMessage() {
     const message = this.messageInput.value.trim();
     if (!message) return;
 
-    this.appendMessage('user', message, '사용자');
+    this.appendMessage('user', message, '나');
     this.messageInput.value = '';
+    this.messageInput.style.height = 'auto';
     this.sendBtn.disabled = true;
 
     const personaId = this.personaSelect.value;
-    const personaName = this.personaSelect.options[this.personaSelect.selectedIndex].text;
+    const personaName = this.badgeName.textContent;
     const model = this.modelSelect.value;
     const ttsEngine = this.ttsEngineSelect.value;
-    const voiceEnabled = this.voiceToggle.checked;
 
     const msgObj = this.appendMessage('assistant', '', personaName);
-    this.speakingState.textContent = '응답 생성 중...';
+    this.speakingState.textContent = '생각 중...';
     let accumulatedText = '';
     const messageAudios = [];
 
@@ -213,7 +311,7 @@ class BukiClient {
           model: model,
           tts_engine: ttsEngine,
           history: this.history,
-          voice_enabled: voiceEnabled
+          voice_enabled: this.voiceEnabled
         })
       });
 
@@ -241,15 +339,15 @@ class BukiClient {
               if (event.type === 'token') {
                 accumulatedText += event.token;
                 msgObj.contentEl.innerHTML = this.formatContentHtml(accumulatedText);
-                this.chatHistoryEl.scrollTop = this.chatHistoryEl.scrollHeight;
-              } else if (event.type === 'audio' && this.voiceToggle.checked) {
+                this.scrollToBottom();
+              } else if (event.type === 'audio' && this.voiceEnabled) {
                 messageAudios.push(event.audio_base64);
                 this.enqueueAudio(event.audio_base64, event.spoken_text, event.actions, event.engine_used);
               } else if (event.type === 'action_cue') {
                 this.triggerActionExpression(event.actions);
               } else if (event.type === 'done') {
                 if (!this.isPlayingAudio) {
-                  this.speakingState.textContent = '대기 중';
+                  this.speakingState.textContent = '대기 중...';
                 }
               }
             } catch (e) {
@@ -272,12 +370,12 @@ class BukiClient {
       this.history.push({ role: 'assistant', content: accumulatedText });
 
     } catch (err) {
-      msgObj.contentEl.textContent += `\n[오류 발생: ${err.message}]`;
-      this.speakingState.textContent = '대기 중';
+      msgObj.contentEl.textContent += `\n[오류: ${err.message}]`;
+      this.speakingState.textContent = '대기 중...';
     } finally {
       this.sendBtn.disabled = false;
       if (!this.isPlayingAudio) {
-        this.speakingState.textContent = '대기 중';
+        this.speakingState.textContent = '대기 중...';
       }
     }
   }
@@ -297,7 +395,7 @@ class BukiClient {
     } else if (actionText.includes('웃')) {
       this.avatarFace.textContent = faces.laugh || '😆';
     }
-    this.speakingState.textContent = `(행동: ${actions[0].slice(0, 15)})`;
+    this.speakingState.textContent = `(${actions[0].slice(0, 14)})`;
   }
 
   enqueueAudio(base64Audio, spokenText, actions, engine) {
@@ -311,8 +409,9 @@ class BukiClient {
     if (this.audioQueue.length === 0) {
       this.isPlayingAudio = false;
       this.avatarOrb.classList.remove('speaking');
+      this.audioWaveBox.classList.remove('active');
       this.updateTheme();
-      this.speakingState.textContent = '대기 중';
+      this.speakingState.textContent = '대기 중...';
       return;
     }
 
@@ -321,10 +420,9 @@ class BukiClient {
     const persona = this.personaSelect.value;
 
     this.avatarOrb.classList.add('speaking');
+    this.audioWaveBox.classList.add('active');
     this.avatarFace.textContent = (this.personaFaces[persona] || {}).speaking || '🗣️';
-    
-    const engineLabel = item.engine === 'gpt_sovits' ? '🎙️ GPT-SoVITS' : '🔊 Edge-TTS';
-    this.speakingState.textContent = `[${engineLabel}] "${(item.text || '').slice(0, 18)}..."`;
+    this.speakingState.textContent = `"${(item.text || '').slice(0, 16)}..."`;
 
     if (item.actions && item.actions.length > 0) {
       this.triggerActionExpression(item.actions);
@@ -346,8 +444,8 @@ class BukiClient {
       const playPromise = this.currentAudio.play();
       if (playPromise !== undefined) {
         playPromise.catch(e => {
-          console.warn('[Audio] Autoplay prevented by browser:', e);
-          this.speakingState.textContent = '화면을 터치하면 음성이 재생됩니다 🔊';
+          console.warn('[Audio] Autoplay prevented by mobile browser:', e);
+          this.speakingState.textContent = '화면을 터치하면 음성 재생 🔊';
           this.playNextAudio();
         });
       }
@@ -365,10 +463,11 @@ class BukiClient {
     this.audioQueue = [];
     this.isPlayingAudio = false;
     this.avatarOrb.classList.remove('speaking');
+    this.audioWaveBox.classList.remove('active');
     this.updateTheme();
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  window.buki = new BukiClient();
+  window.buki = new BukiMobileClient();
 });
