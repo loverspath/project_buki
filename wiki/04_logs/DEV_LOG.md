@@ -2,6 +2,21 @@
 
 ---
 
+### 📅 2026-08-27 (Sprint 4: Google Gemini 2.0 Flash 공식 탑재 & app.py 설정/메인 JSON 분리 리팩토링)
+* **작업 내용**:
+  1. **Google Gemini 2.0 Flash / 1.5 Flash 공식 API 연동**:
+     - `src/backend/app.py`: Gemini 공식 SSE 스트리밍 엔드포인트 연동 및 문장 단위 음성 합성 파이프라인 결합.
+     - `src/frontend/app.js`: UI 모델 선택기 상단에 `✨ 구글 제미나이 무료 API` 전용 카테고리 신설.
+     - `.env`: `GEMINI_API_KEY` 환경변수 지원.
+  2. **`app.py` 갓오브젝트 해체 및 `ConfigManager` 싱글톤 분리**:
+     - `src/backend/config/settings.json`: 모델 카탈로그, API URL, 10대 감정 연기 프롬프트, 키워드 룰셋을 전량 JSON으로 분리.
+     - `src/backend/core/config_manager.py`: JSON 로딩, `.env` 오버라이드, 감정 추론 헬퍼 및 런타임 `reload()` 지원.
+     - `POST /api/config/reload`: 서버 재부팅 없는 동적 핫 리로드 엔드포인트 제공.
+  3. **회귀 검증 테스트 스위트 작성**:
+     - `scripts/test_config_refactor.py`: 모델 카테고리 분기, 감정 프롬프트 매핑, 문맥 감정 추론, 대본 파싱 전수 검증 통과.
+
+---
+
 ### 📅 2026-08-27 (Sprint 3: 10대 극적 연기 감정 & NSFW 보이스 필터 및 대본 낭독기 완비)
 * **작업 내용**:
   1. **10가지 극적 연기 감정 (Acting Emotion Styles) 아키텍처 구축**:

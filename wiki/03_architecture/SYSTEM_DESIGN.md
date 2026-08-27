@@ -74,3 +74,13 @@ graph TD
    * 상단 드롭다운에서 특정 감정 선택 시 대본 전체 대사를 단일 연기 톤으로 강제 낭독.
 3. **캐시 무결성 보장**:
    * 감정 모드 전환 시 `scriptAudioCache`를 즉각 무효화하여 새로운 연기 톤으로 재생성.
+
+---
+
+## ⚙️ 4. 설정 분리 및 동적 핫 리로드 (ConfigManager) 규격
+
+* **중앙화 설정 저장소 (`src/backend/config/settings.json`)**:
+  * 모델 카탈로그(`gemini_cloud`, `openrouter_free`, `nvidia_cloud`), API 엔드포인트 기본값, 감정별 시스템 프롬프트 템플릿, 대본 감정 키워드 룰셋을 단일 JSON으로 통합 관리.
+* **싱글톤 설정 관리자 (`src/backend/core/config_manager.py`)**:
+  * `.env` 우선순위 자동 주입 및 모델 카테고리 필터링 제공.
+  * `POST /api/config/reload`를 통해 서버 재시작 없이 런타임 핫 리로드 지원.

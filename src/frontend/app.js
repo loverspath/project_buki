@@ -821,7 +821,13 @@ class BukiMobileClient {
         const categorized = data.categorized_models || {};
         
         const friendlyNames = {
+          // Google Gemini Official
+          'gemini-2.0-flash': '✨ Google Gemini 2.0 Flash (공식 무료 API - 1순위 추천)',
+          'gemini-1.5-flash': '🌟 Google Gemini 1.5 Flash (공식 무료 API)',
+          'gemini-2.0-flash-lite-preview-02-05': '⚡ Google Gemini 2.0 Flash Lite (초경량/고속)',
+
           // OpenRouter Models
+          'google/gemini-2.0-flash-exp:free': '✨ Gemini 2.0 Flash Exp (OpenRouter 무료)',
           'z-ai/glm-5.3-flash': '🔥 옥스알파 / GLM-5.3 Flash (스텔스 1위)',
           'minimax/minimax-m3:free': '⭐ MiniMax M3 (1M 컨텍스트 무료)',
           'openrouter/free': '🚀 OpenRouter Free (스마트 자동 라우터)',
@@ -846,6 +852,19 @@ class BukiMobileClient {
         };
 
         this.modelSelect.innerHTML = '';
+
+        // 0. Google Gemini Group
+        if (categorized.gemini_cloud && categorized.gemini_cloud.length > 0) {
+          const grp = document.createElement('optgroup');
+          grp.label = '✨ 구글 제미나이 무료 API (Google Gemini)';
+          categorized.gemini_cloud.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = friendlyNames[m] || m;
+            grp.appendChild(opt);
+          });
+          this.modelSelect.appendChild(grp);
+        }
 
         // 1. OpenRouter Group
         if (categorized.openrouter_free && categorized.openrouter_free.length > 0) {

@@ -1,0 +1,80 @@
+{
+  "api_endpoints": {
+    "ollama_base_url": "http://127.0.0.1:11434",
+    "nvidia_base_url": "https://integrate.api.nvidia.com/v1",
+    "gemini_base_url": "https://generativelanguage.googleapis.com/v1beta",
+    "openrouter_base_url": "https://openrouter.ai/api/v1"
+  },
+  "models": {
+    "gemini_cloud": [
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-2.0-flash-lite-preview-02-05"
+    ],
+    "openrouter_free": [
+      "google/gemini-2.0-flash-exp:free",
+      "z-ai/glm-5.3-flash",
+      "minimax/minimax-m3:free",
+      "openrouter/free",
+      "google/gemma-4-31b-it:free",
+      "google/gemma-4-26b-a4b-it:free",
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "thinkingmachines/inkling:free",
+      "poolside/laguna-s-2.1:free",
+      "z-ai/glm-5.2:free"
+    ],
+    "nvidia_cloud": [
+      "nvidia/nemotron-3-ultra-550b-a55b",
+      "nvidia/nemotron-3-super-120b-a12b",
+      "nvidia/llama-3.1-nemotron-70b-instruct",
+      "deepseek-ai/deepseek-v4-pro-0813"
+    ]
+  },
+  "defaults": {
+    "persona": "mesugaki",
+    "model": "gemini-2.0-flash",
+    "tts_engine": "gpt_sovits",
+    "acting_emotion": "auto"
+  },
+  "available_tts_engines": [
+    {
+      "id": "gpt_sovits",
+      "name": "🎙️ GPT-SoVITS (3초 제로샷 - 기본)"
+    },
+    {
+      "id": "chatterbox",
+      "name": "🎭 Chatterbox (0.5B 감정/태그 제어)"
+    },
+    {
+      "id": "auto",
+      "name": "⚡ 자동 (SoVITS ➔ Chatterbox ➔ Edge)"
+    },
+    {
+      "id": "edge_tts",
+      "name": "🔊 Edge-TTS (초고속 기본 음성)"
+    }
+  ],
+  "acting_styles": {
+    "sensual": "\n[Acting Style: 살짝 달아오른 목소리와 부끄러운 앙탈/귓속말, 호흡 감탄사(...읏..., ...하아...)를 섞어 대답할 것]",
+    "terrified": "\n[Acting Style: 공포에 질려 벌벌 떨며, 사시나무처럼 떨리는 비명과 호흡 감탄사(히익...!, 으악...!)를 섞어 대답할 것]",
+    "resigned": "\n[Acting Style: 모든 것을 체념한 듯 낮고 느린 톤으로 깊은 한숨(...하아...)과 함께 무기력하게 대답할 것]",
+    "panting": "\n[Acting Style: 가쁜 숨을 헐떡이며(...하아, 하아...) 대답할 것]",
+    "flustered": "\n[Acting Style: 얼굴이 새빨개져서 당황하고 더듬거리며(...앗, 바, 바보...!) 대답할 것]",
+    "whisper": "\n[Acting Style: 귓가에 조용히 밀착하여 속삭이듯 나긋나긋하게 대답할 것]",
+    "crying": "\n[Acting Style: 눈물을 글썽이며 서럽게 울먹이고 흐느끼며(...흑, 훌쩍...) 대답할 것]",
+    "angry": "\n[Acting Style: 극도로 화가 나서 앙칼지게 쏘아붙이며 대답할 것]",
+    "smug": "\n[Acting Style: 비웃음(풋, 큭큭)과 함께 상대를 깔보고 놀리듯 대답할 것]"
+  },
+  "emotion_keyword_rules": {
+    "sensual": ["신음", "달아오른", "야릇", "흐트러", "앙탈", "달콤한 교성", "허덕이", "교태", "녹아내리", "애원"],
+    "panting": ["헐떡", "가쁜 숨", "거친 숨", "숨을 몰아쉬", "하악", "하아하아", "숨이 차"],
+    "terrified": ["공포", "비명", "겁에 질", "사시나무", "떨며", "살려", "무서", "히익", "경악", "벌벌"],
+    "resigned": ["체념", "낮은 목소리", "느린 목소리", "한숨", "절망", "무기력", "멍하니", "지친", "포기"],
+    "crying": ["울먹", "눈물", "흐느끼", "훌쩍", "흑흑"],
+    "whisper": ["속삭", "귓가", "소곤", "귓속말", "살며시 다가와", "귀에 대고"],
+    "flustered": ["얼굴을 붉", "부끄러", "더듬", "우물쭈물", "시선을 피", "당황", "홍조", "부끄"],
+    "smug": ["비웃", "피식", "혀를 차", "한심", "콧방귀", "멍청", "허접", "풋", "깔보", "우쭐"],
+    "tease": ["놀리", "장난", "우후후", "쿠후후", "킥킥", "쿡쿡"],
+    "angry": ["화", "버럭", "소리치", "짜증", "인상", "노려보", "째려", "가만 안"]
+  }
+}

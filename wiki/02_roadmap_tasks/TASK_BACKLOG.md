@@ -17,4 +17,6 @@
 | **TSK-010** | Audio | GPT-SoVITS 텍스트 프리 모드 및 32kHz PCM WAV 표준화 (반복 누출 해결) | Backend | ✅ 완료 | P0 |
 | **TSK-011** | Core | 10대 극적 연기 감정(공포, 체념, 신음 등) & NSFW 실시간 보이스 필터 파이프라인 | All | ✅ 완료 | P0 |
 | **TSK-012** | Feature | 대본 낭독기 (Script Reader) 2-Way 감정 파싱 & 일괄 낭독 엔진 탑재 | All | ✅ 완료 | P0 |
+| **TSK-013** | LLM | Google Gemini 2.0 Flash 차세대 공식 API 연동 & 프론트엔드 모델 선택기 | Backend | ✅ 완료 | P0 |
+| **TSK-014** | Refactor | `app.py` 갓오브젝트 해체 ➔ `settings.json` & `ConfigManager` 싱글톤 분리 및 핫 리로드 | Backend | ✅ 완료 | P0 |
 | **TSK-008** | Avatar | Three.js 3D VRM 웹 렌더러 및 립싱크 모핑 탑재 | Frontend | ⏳ 대기 (Phase 3) | P1 |
