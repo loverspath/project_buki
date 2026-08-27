@@ -112,7 +112,13 @@ async def synthesize_speech_chatterbox(
     if not text.strip():
         return None
 
-    # Reference sample lookup
+    # Analyze emotion, panting, breathiness, and tag text
+    processed_text, inferred_emotion, exaggeration = analyze_emotion_and_format_text(
+        text, detected_actions or []
+    )
+    final_emotion = override_emotion or inferred_emotion
+
+    # Robust Reference sample lookup from sample_registry.json
     assets_dir = Path(__file__).parent.parent.parent / "assets" / "voice_samples"
     registry_path = assets_dir / "sample_registry.json"
     ref_audio_path = None
@@ -120,24 +126,30 @@ async def synthesize_speech_chatterbox(
 
     if registry_path.exists():
         try:
-            with open(registry_path, "r", encoding="utf-8") as f:
+            with open(registry_path, "r", encoding="utf-8-sig") as f:
                 reg = json.load(f)
-                p_data = reg.get(persona_id, reg.get("mesugaki", {}))
-                sample_file = p_data.get("sample_file")
+                p_data = reg.get(persona_id) or reg.get("mesugaki", {})
+                raw_ref = p_data.get("default_ref_wav")
                 prompt_lang = p_data.get("prompt_lang", "ko")
-                if sample_file:
-                    target_wav = assets_dir / sample_file
-                    if target_wav.exists():
-                        ref_audio_path = str(target_wav.resolve())
+
+                if "emotion_banks" in p_data and final_emotion in p_data["emotion_banks"]:
+                    raw_ref = p_data["emotion_banks"][final_emotion].get("ref_wav", raw_ref)
+                    prompt_lang = p_data["emotion_banks"][final_emotion].get("lang", prompt_lang)
+
+                if raw_ref:
+                    p = Path(raw_ref)
+                    if p.exists():
+                        ref_audio_path = str(p.resolve())
+                    elif (assets_dir / p.name).exists():
+                        ref_audio_path = str((assets_dir / p.name).resolve())
         except Exception as e:
             print(f"[Chatterbox Registry Warning] {e}")
 
-    # Analyze emotion, panting, breathiness, and tag text
-    processed_text, inferred_emotion, exaggeration = analyze_emotion_and_format_text(
-        text, detected_actions or []
-    )
-
-    final_emotion = override_emotion or inferred_emotion
+    # Fallback to default mesugaki_ref.wav if still not found
+    if not ref_audio_path or not os.path.exists(ref_audio_path):
+        fallback_wav = assets_dir / "mesugaki_ref.wav"
+        if fallback_wav.exists():
+            ref_audio_path = str(fallback_wav.resolve())
 
     payload = {
         "text": processed_text,
