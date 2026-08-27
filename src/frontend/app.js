@@ -41,6 +41,7 @@ class BukiClient {
     this.setupEventListeners();
     await this.fetchModelsAndPersonas();
     this.updateTheme();
+    this.updateTTSBadge();
   }
 
   unlockAudio() {
@@ -51,10 +52,11 @@ class BukiClient {
         const ctx = new AudioContext();
         ctx.resume().then(() => {
           this.audioUnlocked = true;
+          console.log('[Audio] AudioContext unlocked.');
         });
       }
     } catch (e) {
-      console.warn('[Audio] Could not unlock audio context:', e);
+      console.warn('[Audio] AudioContext unlock error:', e);
     }
   }
 
@@ -79,6 +81,36 @@ class BukiClient {
     this.personaSelect.addEventListener('change', () => {
       this.updateTheme();
     });
+
+    this.ttsEngineSelect.addEventListener('change', () => {
+      this.updateTTSBadge();
+    });
+
+    this.voiceToggle.addEventListener('change', () => {
+      this.updateTTSBadge();
+    });
+  }
+
+  updateTTSBadge() {
+    const isVoice = this.voiceToggle.checked;
+    const engine = this.ttsEngineSelect.value;
+    
+    if (!isVoice) {
+      this.ttsStatusText.textContent = '🔇 음성 출력 꺼짐';
+      this.ttsStatusText.style.color = '#8b949e';
+      return;
+    }
+
+    if (engine === 'gpt_sovits') {
+      this.ttsStatusText.textContent = '🎙️ GPT-SoVITS 모드 (기본)';
+      this.ttsStatusText.style.color = '#a855f7';
+    } else if (engine === 'auto') {
+      this.ttsStatusText.textContent = '⚡ 자동 (SoVITS ➔ Edge)';
+      this.ttsStatusText.style.color = '#3fb950';
+    } else {
+      this.ttsStatusText.textContent = '🔊 Edge-TTS 고정 모드';
+      this.ttsStatusText.style.color = '#4da6ff';
+    }
   }
 
   async fetchModelsAndPersonas() {
@@ -100,11 +132,8 @@ class BukiClient {
         }
 
         if (data.gpt_sovits_online) {
-          this.ttsStatusText.textContent = 'GPT-SoVITS 온라인 (3초 제로샷)';
+          this.ttsStatusText.textContent = '🎙️ GPT-SoVITS 온라인 (포트 9880)';
           this.ttsStatusText.style.color = '#3fb950';
-        } else {
-          this.ttsStatusText.textContent = 'Edge-TTS 활성 (GPT-SoVITS 대기)';
-          this.ttsStatusText.style.color = '#8b949e';
         }
       }
     } catch (err) {

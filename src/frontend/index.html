@@ -40,15 +40,15 @@
 
         <div class="control-group">
           <label for="ttsEngineSelect">TTS 엔진</label>
-          <select id="ttsEngineSelect" class="glass-select">
-            <option value="auto" selected>자동 (GPT-SoVITS ➔ Edge)</option>
-            <option value="gpt_sovits">GPT-SoVITS (3초 제로샷)</option>
-            <option value="edge_tts">Edge-TTS (초고속)</option>
+          <select id="ttsEngineSelect" class="glass-select" style="border-color: var(--accent-color);">
+            <option value="gpt_sovits" selected>🎙️ GPT-SoVITS (기본)</option>
+            <option value="auto">⚡ 자동 (SoVITS ➔ Edge)</option>
+            <option value="edge_tts">🔊 Edge-TTS (기본)</option>
           </select>
         </div>
 
         <div class="control-group voice-toggle-group">
-          <span class="toggle-label" style="font-size:0.8rem; color:#8b949e; margin-right:4px;">🔊 음성 출력</span>
+          <label for="voiceToggle" style="font-size:0.8rem; color:#f0f6fc; cursor:pointer;">🔊 음성</label>
           <label class="toggle-switch">
             <input type="checkbox" id="voiceToggle" checked>
             <span class="slider"></span>
@@ -69,7 +69,7 @@
           </div>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="display:flex; flex-direction:column; gap:6px; width:100%; max-width:240px; align-items:center;">
           <div class="persona-badge" id="personaBadge">
             <span class="badge-tag">STATUS</span>
             <span class="badge-name" id="badgeName">메스가키 (Gemma)</span>
@@ -77,8 +77,8 @@
           
           <div class="speaking-state" id="speakingState">대기 중</div>
 
-          <div class="tts-status-card">
-            <span id="ttsStatusText">🎙️ Edge-TTS 활성 (GPT-SoVITS 대기)</span>
+          <div class="tts-status-card" id="ttsStatusCard" style="width:100%;">
+            <span id="ttsStatusText">🎙️ GPT-SoVITS 기본 연동 모드</span>
           </div>
         </div>
       </section>

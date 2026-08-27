@@ -18,7 +18,7 @@ import httpx
 
 from core.persona import PERSONAS
 from tts.tts_manager import synthesize_smart_speech
-from tts.gpt_sovits_service import is_gpt_sovits_alive
+from tts.gpt_sovits_service import is_gpt_sovits_alive, GPT_SOVITS_URL
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 
@@ -42,13 +42,13 @@ class ChatStreamRequest(BaseModel):
     model: Optional[str] = None
     history: Optional[List[ChatMessage]] = []
     voice_enabled: Optional[bool] = True
-    tts_engine: Optional[str] = "auto" # "auto", "gpt_sovits", "edge_tts"
+    tts_engine: Optional[str] = "gpt_sovits" # Default to GPT-SoVITS
     custom_system_prompt: Optional[str] = None
 
 class DirectTTSRequest(BaseModel):
     text: str
     persona_id: Optional[str] = "mesugaki"
-    tts_engine: Optional[str] = "auto"
+    tts_engine: Optional[str] = "gpt_sovits"
 
 def parse_dialogue_and_actions(text: str) -> Tuple[str, List[str]]:
     """Separates spoken dialogue from action/narration tags."""
@@ -84,10 +84,12 @@ async def get_system_info():
         "personas": list(PERSONAS.values()),
         "models": models,
         "default_persona": "mesugaki",
+        "default_tts_engine": "gpt_sovits",
+        "gpt_sovits_url": GPT_SOVITS_URL,
         "gpt_sovits_online": gpt_sovits_status,
         "available_tts_engines": [
-            {"id": "auto", "name": "자동 (GPT-SoVITS 우선 -> Edge-TTS)"},
-            {"id": "gpt_sovits", "name": "GPT-SoVITS (3초 제로샷 캐릭터 보이스)"},
+            {"id": "gpt_sovits", "name": "GPT-SoVITS (3초 제로샷 - 기본)"},
+            {"id": "auto", "name": "자동 (GPT-SoVITS ➔ Edge-TTS 폴백)"},
             {"id": "edge_tts", "name": "Edge-TTS (초고속 기본 음성)"}
         ]
     }
@@ -104,7 +106,7 @@ async def direct_tts(req: DirectTTSRequest):
         persona_id=req.persona_id,
         persona_config=persona,
         detected_actions=actions,
-        preferred_engine=req.tts_engine or "auto"
+        preferred_engine=req.tts_engine or "gpt_sovits"
     )
     if not audio_base64:
         raise HTTPException(status_code=500, detail="Failed to synthesize speech")
@@ -115,7 +117,7 @@ async def chat_stream(req: ChatStreamRequest):
     persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
     model_to_use = req.model or persona.get("default_model", "gemma-mesugaki:latest")
     system_prompt = req.custom_system_prompt or persona.get("system_prompt", "")
-    tts_engine_pref = req.tts_engine or "auto"
+    tts_engine_pref = req.tts_engine or "gpt_sovits"
 
     messages = []
     if system_prompt:
@@ -137,7 +139,8 @@ async def chat_stream(req: ChatStreamRequest):
                 "type": "init",
                 "persona_id": persona["id"],
                 "persona_name": persona["name"],
-                "model": model_to_use
+                "model": model_to_use,
+                "tts_engine": tts_engine_pref
             }
             yield f"data: {json.dumps(init_event, ensure_ascii=False)}\n\n"
 
