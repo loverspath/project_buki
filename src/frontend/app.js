@@ -1,4 +1,4 @@
-// Project BUKI - Client Orchestration, Action Visualizer & Audio Queue Manager
+// Project BUKI - Enhanced Audio Engine & Client Orchestration
 class BukiClient {
   constructor() {
     this.chatHistoryEl = document.getElementById('chatHistory');
@@ -18,6 +18,7 @@ class BukiClient {
     this.audioQueue = [];
     this.isPlayingAudio = false;
     this.currentAudio = null;
+    this.audioUnlocked = false;
 
     this.personaColors = {
       mesugaki: '#ff4d88',
@@ -40,15 +41,38 @@ class BukiClient {
     this.updateTheme();
   }
 
+  // Unlock browser audio policy on first user interaction
+  unlockAudio() {
+    if (this.audioUnlocked) return;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        const ctx = new AudioContext();
+        ctx.resume().then(() => {
+          this.audioUnlocked = true;
+          console.log('[Audio] Browser audio context unlocked successfully.');
+        });
+      }
+    } catch (e) {
+      console.warn('[Audio] Could not unlock audio context:', e);
+    }
+  }
+
   setupEventListeners() {
+    // Unlock audio on any click/touch
+    document.addEventListener('click', () => this.unlockAudio(), { once: true });
+    document.addEventListener('touchstart', () => this.unlockAudio(), { once: true });
+
     this.chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      this.unlockAudio();
       this.sendMessage();
     });
 
     this.messageInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+        this.unlockAudio();
         this.sendMessage();
       }
     });
@@ -91,9 +115,7 @@ class BukiClient {
   }
 
   formatContentHtml(rawText) {
-    // Wrap action cues (parentheses or asterisks) in .action-tag
-    let formatted = rawText.replace(/(\([^\)]+\)|\[[^\]]+\]|\*[^\*]+\*)/g, '<span class="action-tag">$1</span>');
-    return formatted;
+    return rawText.replace(/(\([^\)]+\)|\[[^\]]+\]|\*[^\*]+\*)/g, '<span class="action-tag">$1</span>');
   }
 
   appendMessage(role, text, senderName) {
@@ -107,11 +129,21 @@ class BukiClient {
         <span class="bubble-time">${now}</span>
       </div>
       <div class="bubble-content">${this.formatContentHtml(text)}</div>
+      <div class="bubble-footer" style="display:none; margin-top:8px;">
+        <button class="replay-btn glass-btn" style="padding:2px 8px; font-size:0.75rem; border-radius:4px; cursor:pointer; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#f0f6fc;">
+          🔊 다시 듣기
+        </button>
+      </div>
     `;
 
     this.chatHistoryEl.appendChild(bubble);
     this.chatHistoryEl.scrollTop = this.chatHistoryEl.scrollHeight;
-    return bubble.querySelector('.bubble-content');
+    return {
+      bubbleEl: bubble,
+      contentEl: bubble.querySelector('.bubble-content'),
+      footerEl: bubble.querySelector('.bubble-footer'),
+      replayBtn: bubble.querySelector('.replay-btn')
+    };
   }
 
   async sendMessage() {
@@ -127,9 +159,10 @@ class BukiClient {
     const model = this.modelSelect.value;
     const voiceEnabled = this.voiceToggle.checked;
 
-    const contentEl = this.appendMessage('assistant', '', personaName);
-    this.speakingState.textContent = '생각 중...';
+    const msgObj = this.appendMessage('assistant', '', personaName);
+    this.speakingState.textContent = '응답 생성 중...';
     let accumulatedText = '';
+    const messageAudios = [];
 
     this.stopAudioQueue();
 
@@ -169,15 +202,16 @@ class BukiClient {
               const event = JSON.parse(jsonStr);
               if (event.type === 'token') {
                 accumulatedText += event.token;
-                contentEl.innerHTML = this.formatContentHtml(accumulatedText);
+                msgObj.contentEl.innerHTML = this.formatContentHtml(accumulatedText);
                 this.chatHistoryEl.scrollTop = this.chatHistoryEl.scrollHeight;
               } else if (event.type === 'audio' && this.voiceToggle.checked) {
+                messageAudios.push(event.audio_base64);
                 this.enqueueAudio(event.audio_base64, event.spoken_text, event.actions);
               } else if (event.type === 'action_cue') {
                 this.triggerActionExpression(event.actions);
               } else if (event.type === 'done') {
                 if (!this.isPlayingAudio) {
-                  this.speakingState.textContent = '대기 중...';
+                  this.speakingState.textContent = '대기 중';
                 }
               }
             } catch (e) {
@@ -187,14 +221,27 @@ class BukiClient {
         }
       }
 
+      // If audio chunks were generated, enable Replay button
+      if (messageAudios.length > 0) {
+        msgObj.footerEl.style.display = 'block';
+        msgObj.replayBtn.onclick = () => {
+          this.stopAudioQueue();
+          messageAudios.forEach(b64 => this.audioQueue.push({ base64: b64, text: '다시 재생', actions: [] }));
+          this.playNextAudio();
+        };
+      }
+
       this.history.push({ role: 'user', content: message });
       this.history.push({ role: 'assistant', content: accumulatedText });
 
     } catch (err) {
-      contentEl.textContent += `\n[오류 발생: ${err.message}]`;
-      this.speakingState.textContent = '대기 중...';
+      msgObj.contentEl.textContent += `\n[오류 발생: ${err.message}]`;
+      this.speakingState.textContent = '대기 중';
     } finally {
       this.sendBtn.disabled = false;
+      if (!this.isPlayingAudio) {
+        this.speakingState.textContent = '대기 중';
+      }
     }
   }
 
@@ -206,7 +253,7 @@ class BukiClient {
 
     if (actionText.includes('한숨') || actionText.includes('하품')) {
       this.avatarFace.textContent = faces.sigh || '😮‍💨';
-    } else if (actionText.includes('비웃') || actionText.includes('피식') || actionText.includes('팔짱')) {
+    } else if (actionText.includes('비웃') || actionText.includes('피식') || actionText.includes('팔짱') || actionText.includes('허접')) {
       this.avatarFace.textContent = faces.smirk || '😼';
     } else if (actionText.includes('째려') || actionText.includes('인상')) {
       this.avatarFace.textContent = faces.glare || '😒';
@@ -228,7 +275,7 @@ class BukiClient {
       this.isPlayingAudio = false;
       this.avatarOrb.classList.remove('speaking');
       this.updateTheme();
-      this.speakingState.textContent = '대기 중...';
+      this.speakingState.textContent = '대기 중';
       return;
     }
 
@@ -238,28 +285,38 @@ class BukiClient {
 
     this.avatarOrb.classList.add('speaking');
     this.avatarFace.textContent = (this.personaFaces[persona] || {}).speaking || '🗣️';
-    this.speakingState.textContent = `음성: "${item.text.slice(0, 20)}..."`;
+    this.speakingState.textContent = `말하는 중: "${(item.text || '').slice(0, 20)}..."`;
 
     if (item.actions && item.actions.length > 0) {
       this.triggerActionExpression(item.actions);
     }
 
-    const audioUrl = `data:audio/mp3;base64,${item.base64}`;
-    this.currentAudio = new Audio(audioUrl);
+    try {
+      const audioUrl = `data:audio/mp3;base64,${item.base64}`;
+      this.currentAudio = new Audio(audioUrl);
 
-    this.currentAudio.onended = () => {
-      this.playNextAudio();
-    };
+      this.currentAudio.onended = () => {
+        this.playNextAudio();
+      };
 
-    this.currentAudio.onerror = (e) => {
-      console.warn('Audio play error:', e);
-      this.playNextAudio();
-    };
+      this.currentAudio.onerror = (e) => {
+        console.warn('[Audio] playback error:', e);
+        this.playNextAudio();
+      };
 
-    this.currentAudio.play().catch(e => {
-      console.warn('Autoplay blocked or error:', e);
+      const playPromise = this.currentAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.warn('[Audio] Autoplay prevented by browser:', e);
+          // Show unlock notification
+          this.speakingState.textContent = '화면을 터치하면 음성이 재생됩니다 🔊';
+          this.playNextAudio();
+        });
+      }
+    } catch (e) {
+      console.warn('[Audio] Creation error:', e);
       this.playNextAudio();
-    });
+    }
   }
 
   stopAudioQueue() {
