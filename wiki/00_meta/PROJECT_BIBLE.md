@@ -1,4 +1,4 @@
-﻿# 🔮 Project BUKI (`project_buki`) - System Bible
+# 🔮 Project BUKI (`project_buki`) - System Bible
 
 > **차세대 인터랙티브 AI 컴패니언 & 버츄얼 아바타 시스템**  
 > *LLM Streaming Chat × Real-time High-Quality TTS × 3D/2D Virtual Avatar Engine*
@@ -37,25 +37,27 @@ flowchart LR
 
 ---
 
-## 🎯 2. 3대 핵심 기둥 (Core Pillars)
+## 🎯 2. 4대 핵심 기둥 (Core Pillars)
 
-1. **지능형 페르소나 챗 (Persona & Context Intelligence)**
-   - 캐릭터별 말투, 가치관, 기억(컨텍스트)을 유지하는 동적 프롬프트 파이프라인.
-   - 응답 텍스트에 감정 태그(`[emotion:happy]`, `[emotion:blush]` 등) 자동 임베딩.
-2. **초저지연 실시간 스트리밍 TTS (Ultra-low Latency TTS)**
-   - 문장이 생성되는 즉시 실시간 청크 단위 오디오 스트리밍 (Edge-TTS / ElevenLabs 등).
-   - 음성 재생과 동시에 입모양 파라미터(Viseme A/I/U/E/O) 동기화.
-3. **웹 기반 버츄얼 아바타 렌더러 (Web Virtual Avatar Engine)**
+1. **지능형 페르소나 챗 & 대사/지문 분리 엔진 (Persona & Parser Intelligence)**
+   - 캐릭터별 말투, 가치관, 컨텍스트를 유지하는 동적 프롬프트 파이프라인.
+   - 대사(TTS 발화)와 지문/행동(UI 시각화)을 실시간으로 3계층 분리.
+2. **Multi-TTS 하이브리드 음성 엔진 (Tri-Engine Hybrid TTS)**
+   - GPT-SoVITS (3초 제로샷 캐릭터 복제) + Chatterbox 0.5B (호흡/의성어 태그 제어) + Edge-TTS 자동 폴백.
+3. **10대 극적 연기 감정 & 대본 낭독기 (10 Acting Emotions & Script Reader)**
+   - 공포(1.16x+떨림), 체념(0.78x+한숨), 신음/달아오름(0.90x+성대떨림), 속삭임(ASMR) 등 극적 억양 파이프라인.
+   - 소설/대본 텍스트를 대사와 지문으로 자동 분할하고 문맥별 감정 톤으로 실시간 연속 낭독.
+4. **웹 기반 버츄얼 아바타 렌더러 (Web Virtual Avatar Engine)**
    - Three.js 기반 `@pixiv/three-vrm` 3D 아바타 렌더링.
-   - 자연스러운 시선 추적(마우스/카메라 아이컨택), 대기 모션(Idle Motion), 물리(머리카락/의상).
+   - 자연스러운 시선 추적, 립싱크 모핑, 대기 모션(Idle Motion).
 
 ---
 
-## 🗺️ 3. 3단계 로드맵 요약
+## 🗺️ 3. 개발 로드맵 요약
 
-* **Phase 1 (MVP)**: LLM 실시간 스트리밍 챗 + 페르소나 전환 + 무료 고음질 Edge-TTS 음성 출력.
-* **Phase 2 (LipSync & Emotion)**: 오디오 파형 분석 기반 실시간 립싱크 추출 및 감정별 표정 상태머신.
-* **Phase 3 (Full Avatar Integration)**: Three.js 3D VRM 아바타 연동, 물리 효과, 인터랙티브 제스처.
+* **Phase 1 (MVP & Multi-TTS)**: LLM 실시간 스트리밍 챗 + GPT-SoVITS / Chatterbox / Edge-TTS 트라이 엔진 + 대사/지문 3계층 파서. ✅ **완료**
+* **Phase 2 (10 Acting Emotions & Script Reader)**: 10대 극적 연기 감정 프로소디 + 대본 낭독기 2-Way 연동 + 모바일/Tailscale 최적화. ✅ **완료**
+* **Phase 3 (3D VRM Avatar & Viseme LipSync)**: Three.js 3D VRM 아바타 연동, 오디오 파형 기반 실시간 립싱크 및 표정 상태머신. ⏳ **예정**
 
 ---
 
