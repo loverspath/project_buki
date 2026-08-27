@@ -1,4 +1,4 @@
-// Project BUKI - Mobile-First AI Messenger & Voice Orchestration Client
+// Project BUKI - Bulletproof Mobile Audio & AI Messenger Client
 class BukiMobileClient {
   constructor() {
     // Elements
@@ -31,12 +31,15 @@ class BukiMobileClient {
     this.speakingState = document.getElementById('speakingState');
     this.audioWaveBox = document.getElementById('audioWaveBox');
 
+    // Persistent Mobile Audio Engine
+    this.audioPlayer = new Audio();
+    this.audioPlayer.preload = 'auto';
+    this.audioUnlocked = false;
+
     // State
     this.history = [];
     this.audioQueue = [];
     this.isPlayingAudio = false;
-    this.currentAudio = null;
-    this.audioUnlocked = false;
     this.voiceEnabled = true;
 
     this.personaColors = {
@@ -61,24 +64,36 @@ class BukiMobileClient {
     this.updateTTSBadge();
   }
 
+  // Mobile WebAudio / HTML5 Audio unlocker using persistent element
   unlockAudio() {
     if (this.audioUnlocked) return;
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        const ctx = new AudioContext();
-        ctx.resume().then(() => {
+      // 1. Prime persistent Audio element with silent frame
+      this.audioPlayer.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      const playPromise = this.audioPlayer.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
           this.audioUnlocked = true;
-          console.log('[Audio] Mobile AudioContext unlocked.');
+          this.audioPlayer.pause();
+          console.log('[Audio Engine] Mobile Audio Player unlocked successfully.');
+        }).catch(e => {
+          console.warn('[Audio Engine] Unlock pending user gesture:', e);
         });
       }
+
+      // 2. Also resume AudioContext if present
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        ctx.resume().then(() => { this.audioUnlocked = true; });
+      }
     } catch (e) {
-      console.warn('[Audio] AudioContext unlock error:', e);
+      console.warn('[Audio Engine] Unlock error:', e);
     }
   }
 
   setupEventListeners() {
-    // Unlock WebAudio on any first tap
+    // Unlock on any touch/click
     document.addEventListener('click', () => this.unlockAudio(), { once: true });
     document.addEventListener('touchstart', () => this.unlockAudio(), { once: true });
 
@@ -89,7 +104,7 @@ class BukiMobileClient {
       this.sendMessage();
     });
 
-    // Auto-resize textarea on input
+    // Auto-resize textarea
     this.messageInput.addEventListener('input', () => {
       this.messageInput.style.height = 'auto';
       this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 100) + 'px';
@@ -110,6 +125,7 @@ class BukiMobileClient {
         this.quickVoiceBtn.classList.add('active');
         this.quickVoiceBtn.querySelector('.pill-icon').textContent = '🔊';
         this.voiceStatusText.textContent = '음성 ON';
+        this.unlockAudio();
       } else {
         this.quickVoiceBtn.classList.remove('active');
         this.quickVoiceBtn.querySelector('.pill-icon').textContent = '🔇';
@@ -119,7 +135,7 @@ class BukiMobileClient {
       this.updateTTSBadge();
     });
 
-    // Settings Bottom Sheet Modal
+    // Settings Bottom Sheet
     this.openSettingsBtn.addEventListener('click', () => this.openSettings());
     this.closeSettingsBtn.addEventListener('click', () => this.closeSettings());
     this.modalBackdrop.addEventListener('click', () => this.closeSettings());
@@ -168,9 +184,11 @@ class BukiMobileClient {
         if (res.ok) {
           const data = await res.json();
           this.enqueueAudio(data.audio_base64, '목소리 테스트', [], data.engine_used);
+        } else {
+          alert('TTS 생성 실패 (상태 코드: ' + res.status + ')');
         }
       } catch (err) {
-        alert('TTS 테스트 실패: ' + err.message);
+        alert('TTS 테스트 오류: ' + err.message);
       } finally {
         this.testVoiceBtn.disabled = false;
         this.testVoiceBtn.textContent = '🔊 목소리 테스트 재생';
@@ -198,7 +216,7 @@ class BukiMobileClient {
 
     if (engine === 'gpt_sovits') {
       this.currentEngineBadge.textContent = '🎙️ SoVITS';
-      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>GPT-SoVITS 3초 제로샷 모드</strong>';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>GPT-SoVITS 모드</strong> (미구동 시 Edge 자동 폴백)';
     } else if (engine === 'auto') {
       this.currentEngineBadge.textContent = '⚡ AUTO';
       this.ttsStatusDetail.innerHTML = '현재 상태: <strong>자동 폴백 (SoVITS ➔ Edge)</strong>';
@@ -360,6 +378,7 @@ class BukiMobileClient {
       if (messageAudios.length > 0) {
         msgObj.footerEl.style.display = 'block';
         msgObj.replayBtn.onclick = () => {
+          this.unlockAudio();
           this.stopAudioQueue();
           messageAudios.forEach(b64 => this.audioQueue.push({ base64: b64, text: '다시 재생', actions: [], engine: 'replay' }));
           this.playNextAudio();
@@ -429,36 +448,37 @@ class BukiMobileClient {
     }
 
     try {
-      const audioUrl = `data:audio/mp3;base64,${item.base64}`;
-      this.currentAudio = new Audio(audioUrl);
+      const mime = item.base64.startsWith('UklGR') ? 'audio/wav' : 'audio/mpeg';
+      const audioUrl = `data:${mime};base64,${item.base64}`;
 
-      this.currentAudio.onended = () => {
+      this.audioPlayer.src = audioUrl;
+
+      this.audioPlayer.onended = () => {
         this.playNextAudio();
       };
 
-      this.currentAudio.onerror = (e) => {
-        console.warn('[Audio] playback error:', e);
+      this.audioPlayer.onerror = (e) => {
+        console.warn('[Audio Engine] Playback decode error:', e);
         this.playNextAudio();
       };
 
-      const playPromise = this.currentAudio.play();
+      const playPromise = this.audioPlayer.play();
       if (playPromise !== undefined) {
         playPromise.catch(e => {
-          console.warn('[Audio] Autoplay prevented by mobile browser:', e);
-          this.speakingState.textContent = '화면을 터치하면 음성 재생 🔊';
+          console.warn('[Audio Engine] Autoplay blocked by mobile browser:', e);
+          this.speakingState.textContent = '🔊 화면을 터치하여 음성 재생';
           this.playNextAudio();
         });
       }
     } catch (e) {
-      console.warn('[Audio] Creation error:', e);
+      console.warn('[Audio Engine] Creation error:', e);
       this.playNextAudio();
     }
   }
 
   stopAudioQueue() {
-    if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio = null;
+    if (this.audioPlayer) {
+      this.audioPlayer.pause();
     }
     this.audioQueue = [];
     this.isPlayingAudio = false;
