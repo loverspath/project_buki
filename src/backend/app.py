@@ -21,6 +21,15 @@ from tts.tts_manager import synthesize_smart_speech
 from tts.gpt_sovits_service import is_gpt_sovits_alive, GPT_SOVITS_URL
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "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")
+
+NVIDIA_MODELS = [
+    "nvidia/nemotron-3-ultra-550b-a55b",
+    "nvidia/nemotron-3-super-120b-a12b",
+    "nvidia/llama-3.1-nemotron-70b-instruct",
+    "deepseek-ai/deepseek-v4-pro-0813"
+]
 
 app = FastAPI(title="Project BUKI - Local LLM & TTS Companion Engine")
 
@@ -58,67 +67,50 @@ class ScriptSegmentTTSRequest(BaseModel):
     dialogue: str
     persona_id: Optional[str] = "mesugaki"
     inferred_emotion: Optional[str] = "default"
-    tts_engine: Optional[str] = "gpt_sovits"
     context_narration: Optional[str] = ""
+    tts_engine: Optional[str] = "gpt_sovits"
 
-def is_bracket_balanced(text: str) -> bool:
-    """Checks if all opening action delimiters are properly closed."""
-    if text.count('(') > text.count(')'): return False
-    if text.count('[') > text.count(']'): return False
-    if text.count('{') > text.count('}'): return False
-    if text.count('〈') > text.count('〉'): return False
-    if text.count('《') > text.count('》'): return False
-    if text.count('*') % 2 != 0: return False
-    return True
-
-def is_safe_sentence_boundary(buffer: str) -> bool:
-    """Returns True only when buffer ends with punctuation AND brackets are balanced."""
-    if not is_bracket_balanced(buffer):
-        return False
-    if re.search(r'([.!?！？\n]+)\s*$', buffer):
-        return True
-    if re.search(r'(~+)\s*$', buffer) and len(buffer.strip()) >= 6:
-        return True
-    return False
+# --- HELPER FUNCTIONS ---
 
 def parse_dialogue_and_actions(text: str) -> Tuple[str, List[str]]:
-    """Separates spoken dialogue from action/narration tags for live chat."""
-    action_matches = re.findall(r'[\(\[\*〈《]([^\)\]\*〉》]+)[\)\]\*〉》]', text)
-    actions = [a.strip() for a in action_matches if a.strip()]
+    """
+    Extracts spoken dialogue (outside parentheses) and action cues (inside parentheses).
+    Example: '(혀를 차며) 하아? 바보 오빠~' -> ('하아? 바보 오빠~', ['혀를 차며'])
+    """
+    action_matches = re.findall(r"\((.*?)\)", text)
+    cleaned_speech = re.sub(r"\(.*?\)", "", text).strip()
+    return cleaned_speech, action_matches
 
-    cleaned = re.sub(r'\([^\)]*\)|\[[^\]]*\]|\*[^\*]*\*|\<[^\>]*\>|〈[^〉]*〉|《[^》]*》', ' ', text)
-    cleaned = re.sub(r'[\(\[\*〈《][^\)\]\*〉》]*$', '', cleaned)
-    cleaned = re.sub(r'^(대사|말|응답)\s*:\s*', '', cleaned)
-    clean_speech = re.sub(r'[\*\#\_`"]', '', cleaned).strip()
-    clean_speech = re.sub(r'\s+', ' ', clean_speech).strip()
-    has_pronounceable = bool(re.search(r'[가-힣a-zA-Z0-9]', clean_speech))
-    if not has_pronounceable:
-        clean_speech = ""
-    return clean_speech, actions
+def is_safe_sentence_boundary(buffer: str) -> bool:
+    """Checks if buffer has a complete sentence and not inside unclosed parenthesis."""
+    if "(" in buffer and ")" not in buffer:
+        return False
+    return any(p in buffer for p in [".", "!", "?", "\n", "~", "…"])
 
 def parse_script_into_segments(script_text: str, default_persona: str = "mesugaki") -> List[Dict[str, Any]]:
     """
-    Parses a novel/script into sequential segments:
-    - Text in double quotes "..." is treated as spoken dialogue.
-    - Text outside quotes is context narration/situation.
-    - Infers emotional tone from surrounding situation for rich neural acting.
+    Parses a raw script:
+    - Text in double quotes / Korean quotes ("...", “...”, 「...」) is Dialogue.
+    - Text outside quotes is Narration / Situation.
+    - Infers emotional tone from narration keywords to drive GPT-SoVITS emotion banks.
     """
-    normalized = script_text.replace('“', '"').replace('”', '"').replace('「', '"').replace('」', '"').replace('『', '"').replace('』', '"')
-    parts = re.split(r'("[^"]+")', normalized)
+    normalized = script_text.replace("“", '"').replace("”", '"').replace("「", '"').replace("」", '"').replace("『", '"').replace("』", '"')
+    parts = re.split(r'(".*?")', normalized)
     
     segments = []
-    current_context = ""
     seg_id = 0
-    
+    current_context = ""
+
     for part in parts:
         part_str = part.strip()
         if not part_str:
             continue
             
-        if part_str.startswith('"') and part_str.endswith('"') and len(part_str) >= 2:
+        if part_str.startswith('"') and part_str.endswith('"'):
             dialogue_text = part_str[1:-1].strip()
+            if not dialogue_text:
+                continue
             
-            # Emotion inference from surrounding context narration
             inferred_emotion = "default"
             ctx_lower = current_context.lower()
             
@@ -162,21 +154,24 @@ def parse_script_into_segments(script_text: str, default_persona: str = "mesugak
 
 @app.get("/api/info")
 async def get_system_info():
-    models = []
+    local_models = []
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             res = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
             if res.status_code == 200:
                 data = res.json()
-                models = [m.get("name") for m in data.get("models", [])]
+                local_models = [m.get("name") for m in data.get("models", [])]
     except Exception as e:
         print(f"[Ollama Tags Error] {e}")
+
+    # Combine Cloud NVIDIA Frontier models and Local Ollama models
+    all_models = NVIDIA_MODELS + [m for m in local_models if m not in NVIDIA_MODELS]
 
     gpt_sovits_status = await is_gpt_sovits_alive()
 
     return {
         "personas": list(PERSONAS.values()),
-        "models": models,
+        "models": all_models,
         "default_persona": "mesugaki",
         "default_tts_engine": "gpt_sovits",
         "gpt_sovits_url": GPT_SOVITS_URL,
@@ -208,12 +203,13 @@ async def direct_tts(req: DirectTTSRequest):
 
 @app.post("/api/script/parse")
 async def parse_script_endpoint(req: ScriptParseRequest):
+    if not req.script_text.strip():
+        return {"segments": []}
     segments = parse_script_into_segments(req.script_text, req.persona_id or "mesugaki")
-    total_dialogues = sum(1 for s in segments if s["type"] == "dialogue")
-    return {"segments": segments, "total_dialogues": total_dialogues}
+    return {"segments": segments, "total": len(segments)}
 
 @app.post("/api/script/tts_segment")
-async def tts_segment_endpoint(req: ScriptSegmentTTSRequest):
+async def tts_script_segment(req: ScriptSegmentTTSRequest):
     persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
     audio_base64, engine_used = await synthesize_smart_speech(
         text=req.dialogue,
@@ -235,7 +231,7 @@ async def tts_segment_endpoint(req: ScriptSegmentTTSRequest):
 @app.post("/api/chat/stream")
 async def chat_stream(req: ChatStreamRequest):
     persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
-    model_to_use = req.model or persona.get("default_model", "gemma-mesugaki:latest")
+    model_to_use = req.model or "nvidia/nemotron-3-ultra-550b-a55b"
     system_prompt = req.custom_system_prompt or persona.get("system_prompt", "")
     tts_engine_pref = req.tts_engine or "gpt_sovits"
 
@@ -264,82 +260,166 @@ async def chat_stream(req: ChatStreamRequest):
             }
             yield f"data: {json.dumps(init_event, ensure_ascii=False)}\n\n"
 
-            ollama_payload = {
-                "model": model_to_use,
-                "messages": messages,
-                "stream": True,
-                "options": {
-                    "temperature": 0.85,
-                    "top_p": 0.9,
-                    "repeat_penalty": 1.15,
-                    "num_ctx": 4096
+            # Check if model is NVIDIA Cloud API
+            is_nvidia = any(model_to_use.startswith(prefix) for prefix in ["nvidia/", "deepseek-ai/", "meta/", "mistralai/"])
+
+            if is_nvidia:
+                nvidia_payload = {
+                    "model": model_to_use,
+                    "messages": messages,
+                    "temperature": 0.75,
+                    "max_tokens": 1024,
+                    "stream": True
                 }
-            }
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {NVIDIA_API_KEY}"
+                }
 
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                async with client.stream(
-                    "POST",
-                    f"{OLLAMA_BASE_URL}/api/chat",
-                    json=ollama_payload
-                ) as response:
-                    if response.status_code != 200:
-                        err_chunk = {"type": "error", "message": f"Ollama HTTP {response.status_code}"}
-                        yield f"data: {json.dumps(err_chunk, ensure_ascii=False)}\n\n"
-                        return
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{NVIDIA_BASE_URL}/chat/completions",
+                        json=nvidia_payload,
+                        headers=headers
+                    ) as response:
+                        if response.status_code != 200:
+                            err_body = await response.aread()
+                            err_chunk = {"type": "error", "message": f"NVIDIA API Error {response.status_code}: {err_body.decode()[:150]}"}
+                            yield f"data: {json.dumps(err_chunk, ensure_ascii=False)}\n\n"
+                            return
 
-                    async for line in response.aiter_lines():
-                        if not line:
-                            continue
-                        try:
-                            chunk_json = json.loads(line)
-                        except Exception:
-                            continue
+                        async for line in response.aiter_lines():
+                            if not line:
+                                continue
+                            if line.startswith("data: ") and line.strip() != "data: [DONE]":
+                                try:
+                                    chunk_json = json.loads(line[6:])
+                                    delta = chunk_json.get("choices", [{}])[0].get("delta", {})
+                                    token = delta.get("content", "")
+                                except Exception:
+                                    continue
 
-                        token = chunk_json.get("message", {}).get("content", "")
-                        if token:
-                            full_response_text += token
-                            sentence_buffer += token
+                                if token:
+                                    full_response_text += token
+                                    sentence_buffer += token
 
-                            token_event = {"type": "token", "token": token}
-                            yield f"data: {json.dumps(token_event, ensure_ascii=False)}\n\n"
+                                    token_event = {"type": "token", "token": token}
+                                    yield f"data: {json.dumps(token_event, ensure_ascii=False)}\n\n"
 
-                            if req.voice_enabled and is_safe_sentence_boundary(sentence_buffer):
-                                speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
-                                raw_sentence = sentence_buffer.strip()
-                                sentence_buffer = ""
+                                    if req.voice_enabled and is_safe_sentence_boundary(sentence_buffer):
+                                        speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
+                                        raw_sentence = sentence_buffer.strip()
+                                        sentence_buffer = ""
 
-                                if speech_to_synthesize:
-                                    cur_idx = sentence_index
-                                    sentence_index += 1
+                                        if speech_to_synthesize:
+                                            cur_idx = sentence_index
+                                            sentence_index += 1
 
-                                    audio_b64, engine_used = await synthesize_smart_speech(
-                                        text=speech_to_synthesize,
-                                        persona_id=persona["id"],
-                                        persona_config=persona,
-                                        detected_actions=detected_actions,
-                                        preferred_engine=tts_engine_pref
-                                    )
-                                    if audio_b64:
-                                        audio_event = {
-                                            "type": "audio",
-                                            "index": cur_idx,
-                                            "raw_text": raw_sentence,
-                                            "spoken_text": speech_to_synthesize,
-                                            "actions": detected_actions,
-                                            "engine_used": engine_used,
-                                            "audio_base64": audio_b64
+                                            audio_b64, engine_used = await synthesize_smart_speech(
+                                                text=speech_to_synthesize,
+                                                persona_id=persona["id"],
+                                                persona_config=persona,
+                                                detected_actions=detected_actions,
+                                                preferred_engine=tts_engine_pref
+                                            )
+                                            if audio_b64:
+                                                audio_event = {
+                                                    "type": "audio",
+                                                    "index": cur_idx,
+                                                    "raw_text": raw_sentence,
+                                                    "spoken_text": speech_to_synthesize,
+                                                    "actions": detected_actions,
+                                                    "engine_used": engine_used,
+                                                    "audio_base64": audio_b64
+                                                }
+                                                yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
+                                        elif detected_actions:
+                                            action_event = {
+                                                "type": "action_cue",
+                                                "actions": detected_actions
+                                            }
+                                            yield f"data: {json.dumps(action_event, ensure_ascii=False)}\n\n"
+
+            else:
+                # Local Ollama Streaming
+                ollama_payload = {
+                    "model": model_to_use,
+                    "messages": messages,
+                    "stream": True,
+                    "options": {
+                        "temperature": 0.85,
+                        "top_p": 0.9,
+                        "repeat_penalty": 1.15,
+                        "num_ctx": 4096
+                    }
+                }
+
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{OLLAMA_BASE_URL}/api/chat",
+                        json=ollama_payload
+                    ) as response:
+                        if response.status_code != 200:
+                            err_chunk = {"type": "error", "message": f"Ollama HTTP {response.status_code}"}
+                            yield f"data: {json.dumps(err_chunk, ensure_ascii=False)}\n\n"
+                            return
+
+                        async for line in response.aiter_lines():
+                            if not line:
+                                continue
+                            try:
+                                chunk_json = json.loads(line)
+                            except Exception:
+                                continue
+
+                            token = chunk_json.get("message", {}).get("content", "")
+                            if token:
+                                full_response_text += token
+                                sentence_buffer += token
+
+                                token_event = {"type": "token", "token": token}
+                                yield f"data: {json.dumps(token_event, ensure_ascii=False)}\n\n"
+
+                                if req.voice_enabled and is_safe_sentence_boundary(sentence_buffer):
+                                    speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
+                                    raw_sentence = sentence_buffer.strip()
+                                    sentence_buffer = ""
+
+                                    if speech_to_synthesize:
+                                        cur_idx = sentence_index
+                                        sentence_index += 1
+
+                                        audio_b64, engine_used = await synthesize_smart_speech(
+                                            text=speech_to_synthesize,
+                                            persona_id=persona["id"],
+                                            persona_config=persona,
+                                            detected_actions=detected_actions,
+                                            preferred_engine=tts_engine_pref
+                                        )
+                                        if audio_b64:
+                                            audio_event = {
+                                                "type": "audio",
+                                                "index": cur_idx,
+                                                "raw_text": raw_sentence,
+                                                "spoken_text": speech_to_synthesize,
+                                                "actions": detected_actions,
+                                                "engine_used": engine_used,
+                                                "audio_base64": audio_b64
+                                            }
+                                            yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
+                                    elif detected_actions:
+                                        action_event = {
+                                            "type": "action_cue",
+                                            "actions": detected_actions
                                         }
-                                        yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
-                                elif detected_actions:
-                                    action_event = {
-                                        "type": "action_cue",
-                                        "actions": detected_actions
-                                    }
-                                    yield f"data: {json.dumps(action_event, ensure_ascii=False)}\n\n"
+                                        yield f"data: {json.dumps(action_event, ensure_ascii=False)}\n\n"
 
-                        if chunk_json.get("done", False):
-                            break
+                            if chunk_json.get("done", False):
+                                break
 
+            # Flush remaining buffer
             if req.voice_enabled and sentence_buffer.strip():
                 speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
                 if speech_to_synthesize:

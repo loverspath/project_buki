@@ -621,11 +621,14 @@ class BukiMobileClient {
         const data = await res.json();
         if (data.models && data.models.length > 0) {
           const friendlyNames = {
-            'huihui_ai/qwen2.5-coder-abliterate:14b': '👑 Qwen 2.5 14B 무검열 (고지능 추천)',
-            'gemma4-uncensored:latest': '🌸 Gemma 4 12B 무검열 (소설/상황극)',
-            'gemma-mesugaki:latest': '😏 Gemma Mesugaki (메스가키 전용)',
-            'huihui_ai/qwen3.5-abliterated:9b': '⚡ Qwen 3.5 9B 무검열 (초고속)',
-            'gemma-mesugaki:toolcall': '🛠️ Gemma Mesugaki (툴콜)'
+            'nvidia/nemotron-3-ultra-550b-a55b': '🚀 Nemotron 3 Ultra (550B 초지능 👑)',
+            'nvidia/nemotron-3-super-120b-a12b': '⚡ Nemotron 3 Super (120B)',
+            'nvidia/llama-3.1-nemotron-70b-instruct': '🔥 Llama 3.1 Nemotron (70B)',
+            'deepseek-ai/deepseek-v4-pro-0813': '🧠 DeepSeek V4 Pro (NVIDIA)',
+            'huihui_ai/qwen2.5-coder-abliterate:14b': '💻 Qwen 2.5 14B 무검열 (로컬 코더)',
+            'gemma4-uncensored:latest': '🌸 Gemma 4 12B 무검열 (로컬 상황극)',
+            'gemma-mesugaki:latest': '😏 Gemma Mesugaki (로컬 메스가키)',
+            'huihui_ai/qwen3.5-abliterated:9b': '⚡ Qwen 3.5 9B 무검열 (로컬 초고속)'
           };
 
           this.modelSelect.innerHTML = '';
@@ -633,7 +636,7 @@ class BukiMobileClient {
             const opt = document.createElement('option');
             opt.value = m;
             opt.textContent = friendlyNames[m] || m;
-            if (m === 'huihui_ai/qwen2.5-coder-abliterate:14b') {
+            if (m === 'nvidia/nemotron-3-ultra-550b-a55b') {
               opt.selected = true;
             }
             this.modelSelect.appendChild(opt);
