@@ -1,4 +1,4 @@
-﻿// Project BUKI - Client Orchestration & Audio Queue Manager
+// Project BUKI - Client Orchestration, Action Visualizer & Audio Queue Manager
 class BukiClient {
   constructor() {
     this.chatHistoryEl = document.getElementById('chatHistory');
@@ -26,9 +26,9 @@ class BukiClient {
     };
 
     this.personaFaces = {
-      mesugaki: { idle: '😏', speaking: '😜' },
-      sayaka: { idle: '✨', speaking: '😊' },
-      ruri: { idle: '🧐', speaking: '🎙️' }
+      mesugaki: { idle: '😏', speaking: '😜', smirk: '😼', sigh: '😮‍💨', glare: '😒' },
+      sayaka: { idle: '✨', speaking: '😊', laugh: '😆', think: '🤔' },
+      ruri: { idle: '🧐', speaking: '🎙️', analyze: '📊', calm: '😌' }
     };
 
     this.init();
@@ -41,13 +41,11 @@ class BukiClient {
   }
 
   setupEventListeners() {
-    // Form Submit
     this.chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
       this.sendMessage();
     });
 
-    // Auto-resize textarea & Enter key submit
     this.messageInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -55,7 +53,6 @@ class BukiClient {
       }
     });
 
-    // Persona change
     this.personaSelect.addEventListener('change', () => {
       this.updateTheme();
     });
@@ -93,6 +90,12 @@ class BukiClient {
     this.avatarFace.textContent = (this.personaFaces[persona] || {}).idle || '😊';
   }
 
+  formatContentHtml(rawText) {
+    // Wrap action cues (parentheses or asterisks) in .action-tag
+    let formatted = rawText.replace(/(\([^\)]+\)|\[[^\]]+\]|\*[^\*]+\*)/g, '<span class="action-tag">$1</span>');
+    return formatted;
+  }
+
   appendMessage(role, text, senderName) {
     const bubble = document.createElement('div');
     bubble.className = `chat-bubble ${role === 'user' ? 'user-bubble' : 'assistant-bubble'}`;
@@ -103,7 +106,7 @@ class BukiClient {
         <span class="sender-name">${senderName}</span>
         <span class="bubble-time">${now}</span>
       </div>
-      <div class="bubble-content">${text}</div>
+      <div class="bubble-content">${this.formatContentHtml(text)}</div>
     `;
 
     this.chatHistoryEl.appendChild(bubble);
@@ -115,7 +118,6 @@ class BukiClient {
     const message = this.messageInput.value.trim();
     if (!message) return;
 
-    // Append User Message
     this.appendMessage('user', message, '사용자');
     this.messageInput.value = '';
     this.sendBtn.disabled = true;
@@ -125,11 +127,10 @@ class BukiClient {
     const model = this.modelSelect.value;
     const voiceEnabled = this.voiceToggle.checked;
 
-    // Prepare Assistant Bubble for streaming
     const contentEl = this.appendMessage('assistant', '', personaName);
     this.speakingState.textContent = '생각 중...';
+    let accumulatedText = '';
 
-    // Clear Audio Queue
     this.stopAudioQueue();
 
     try {
@@ -157,7 +158,7 @@ class BukiClient {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n\n');
-        buffer = lines.pop(); // Keep incomplete chunk
+        buffer = lines.pop();
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -166,7 +167,19 @@ class BukiClient {
 
             try {
               const event = JSON.parse(jsonStr);
-              this.handleServerEvent(event, contentEl);
+              if (event.type === 'token') {
+                accumulatedText += event.token;
+                contentEl.innerHTML = this.formatContentHtml(accumulatedText);
+                this.chatHistoryEl.scrollTop = this.chatHistoryEl.scrollHeight;
+              } else if (event.type === 'audio' && this.voiceToggle.checked) {
+                this.enqueueAudio(event.audio_base64, event.spoken_text, event.actions);
+              } else if (event.type === 'action_cue') {
+                this.triggerActionExpression(event.actions);
+              } else if (event.type === 'done') {
+                if (!this.isPlayingAudio) {
+                  this.speakingState.textContent = '대기 중...';
+                }
+              }
             } catch (e) {
               console.error('SSE parse error:', e);
             }
@@ -174,9 +187,8 @@ class BukiClient {
         }
       }
 
-      // Record to history
       this.history.push({ role: 'user', content: message });
-      this.history.push({ role: 'assistant', content: contentEl.textContent });
+      this.history.push({ role: 'assistant', content: accumulatedText });
 
     } catch (err) {
       contentEl.textContent += `\n[오류 발생: ${err.message}]`;
@@ -186,21 +198,26 @@ class BukiClient {
     }
   }
 
-  handleServerEvent(event, contentEl) {
-    if (event.type === 'token') {
-      contentEl.textContent += event.token;
-      this.chatHistoryEl.scrollTop = this.chatHistoryEl.scrollHeight;
-    } else if (event.type === 'audio' && this.voiceToggle.checked) {
-      this.enqueueAudio(event.audio_base64, event.text);
-    } else if (event.type === 'done') {
-      if (!this.isPlayingAudio) {
-        this.speakingState.textContent = '대기 중...';
-      }
+  triggerActionExpression(actions) {
+    if (!actions || actions.length === 0) return;
+    const actionText = actions.join(' ');
+    const persona = this.personaSelect.value;
+    const faces = this.personaFaces[persona] || {};
+
+    if (actionText.includes('한숨') || actionText.includes('하품')) {
+      this.avatarFace.textContent = faces.sigh || '😮‍💨';
+    } else if (actionText.includes('비웃') || actionText.includes('피식') || actionText.includes('팔짱')) {
+      this.avatarFace.textContent = faces.smirk || '😼';
+    } else if (actionText.includes('째려') || actionText.includes('인상')) {
+      this.avatarFace.textContent = faces.glare || '😒';
+    } else if (actionText.includes('웃')) {
+      this.avatarFace.textContent = faces.laugh || '😆';
     }
+    this.speakingState.textContent = `(행동: ${actions[0].slice(0, 15)})`;
   }
 
-  enqueueAudio(base64Audio, sentenceText) {
-    this.audioQueue.push({ base64: base64Audio, text: sentenceText });
+  enqueueAudio(base64Audio, spokenText, actions) {
+    this.audioQueue.push({ base64: base64Audio, text: spokenText, actions: actions });
     if (!this.isPlayingAudio) {
       this.playNextAudio();
     }
@@ -221,7 +238,11 @@ class BukiClient {
 
     this.avatarOrb.classList.add('speaking');
     this.avatarFace.textContent = (this.personaFaces[persona] || {}).speaking || '🗣️';
-    this.speakingState.textContent = `말하는 중: "${item.text.slice(0, 20)}..."`;
+    this.speakingState.textContent = `음성: "${item.text.slice(0, 20)}..."`;
+
+    if (item.actions && item.actions.length > 0) {
+      this.triggerActionExpression(item.actions);
+    }
 
     const audioUrl = `data:audio/mp3;base64,${item.base64}`;
     this.currentAudio = new Audio(audioUrl);

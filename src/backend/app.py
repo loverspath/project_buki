@@ -1,10 +1,13 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import os
 import re
+import sys
 import json
 import asyncio
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
+
+sys.path.insert(0, str(Path(__file__).parent))
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
@@ -13,14 +16,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import httpx
 
-import sys; from pathlib import Path; sys.path.insert(0, str(Path(__file__).parent)); from core.persona import PERSONAS
+from core.persona import PERSONAS
 from tts.tts_service import synthesize_speech_base64
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 
 app = FastAPI(title="Project BUKI - Local LLM & TTS Companion Engine")
 
-# CORS middleware for Tailscale and local access
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -47,11 +49,33 @@ class DirectTTSRequest(BaseModel):
     pitch: Optional[str] = "+0Hz"
     rate: Optional[str] = "+0%"
 
+def parse_dialogue_and_actions(text: str) -> Tuple[str, List[str]]:
+    """
+    Separates spoken dialogue from action/narration tags.
+    - Actions: enclosed in (...), [...], *...*, <...>
+    - Dialogue: spoken text outside of action brackets.
+    """
+    # 1. Extract action cues
+    action_matches = re.findall(r'[\(\[\*]([^\)\]\*]+)[\)\]\*]', text)
+    actions = [a.strip() for a in action_matches if a.strip()]
+
+    # 2. Strip action blocks completely for TTS
+    spoken = re.sub(r'\([^\)]*\)|\[[^\]]*\]|\*[^\*]*\*|\<[^\>]*\>', '', text).strip()
+
+    # 3. Clean markdown and special symbols
+    clean_speech = re.sub(r'[\*\#\_`~]', '', spoken).strip()
+    
+    # 4. Ensure there is actual pronounceable text (Hangul, English, digits)
+    has_pronounceable = bool(re.search(r'[가-힣a-zA-Z0-9]', clean_speech))
+    if not has_pronounceable:
+        clean_speech = ""
+
+    return clean_speech, actions
+
 # --- REST ENDPOINTS ---
 
 @app.get("/api/info")
 async def get_system_info():
-    """Returns available personas and local Ollama models."""
     models = []
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
@@ -70,20 +94,22 @@ async def get_system_info():
 
 @app.post("/api/tts")
 async def direct_tts(req: DirectTTSRequest):
-    """Direct text to speech synthesis endpoint."""
+    speech_text, _ = parse_dialogue_and_actions(req.text)
+    if not speech_text:
+        speech_text = req.text
+        
     audio_base64 = await synthesize_speech_base64(
-        text=req.text,
+        text=speech_text,
         voice=req.voice or "ko-KR-SunHiNeural",
         pitch=req.pitch or "+0Hz",
         rate=req.rate or "+0%"
     )
     if not audio_base64:
         raise HTTPException(status_code=500, detail="Failed to synthesize speech")
-    return {"audio_base64": audio_base64}
+    return {"audio_base64": audio_base64, "spoken_text": speech_text}
 
 @app.post("/api/chat/stream")
 async def chat_stream(req: ChatStreamRequest):
-    """Streams LLM tokens + background sentence-level TTS audio chunks via SSE."""
     persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
     model_to_use = req.model or persona.get("default_model", "gemma-mesugaki:latest")
     system_prompt = req.custom_system_prompt or persona.get("system_prompt", "")
@@ -91,13 +117,12 @@ async def chat_stream(req: ChatStreamRequest):
     pitch = persona.get("voice_pitch", "+0Hz")
     rate = persona.get("voice_rate", "+0%")
 
-    # Construct chat messages
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     
     if req.history:
-        for h in req.history[-10:]: # Keep last 10 turns
+        for h in req.history[-10:]:
             messages.append({"role": h.role, "content": h.content})
             
     messages.append({"role": "user", "content": req.message})
@@ -106,10 +131,8 @@ async def chat_stream(req: ChatStreamRequest):
         sentence_buffer = ""
         full_response_text = ""
         sentence_index = 0
-        audio_tasks = []
 
         try:
-            # Yield persona info event
             init_event = {
                 "type": "init",
                 "persona_id": persona["id"],
@@ -118,7 +141,6 @@ async def chat_stream(req: ChatStreamRequest):
             }
             yield f"data: {json.dumps(init_event, ensure_ascii=False)}\n\n"
 
-            # Stream from Ollama API
             ollama_payload = {
                 "model": model_to_use,
                 "messages": messages,
@@ -154,49 +176,58 @@ async def chat_stream(req: ChatStreamRequest):
                             full_response_text += token
                             sentence_buffer += token
 
-                            # Stream token to client
+                            # Stream raw token for UI rendering
                             token_event = {"type": "token", "token": token}
                             yield f"data: {json.dumps(token_event, ensure_ascii=False)}\n\n"
 
-                            # Sentence boundary check: . ! ? or \n
+                            # Sentence boundary: . ! ? \n or closing parenthesis + punctuation
                             if req.voice_enabled and re.search(r'([.!?！？\n]+|\~+)\s*$', sentence_buffer):
-                                sentence_to_speak = sentence_buffer.strip()
-                                # Clean emojis/markdown for speech
-                                clean_speech_text = re.sub(r'[\*\#\_`\[\]\(\)\{\}]', '', sentence_to_speak)
-                                if len(clean_speech_text) >= 2:
+                                speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
+                                raw_sentence = sentence_buffer.strip()
+                                sentence_buffer = ""
+
+                                if speech_to_synthesize:
                                     cur_idx = sentence_index
                                     sentence_index += 1
-                                    sentence_buffer = ""
 
-                                    # Synthesize TTS concurrently
-                                    audio_b64 = await synthesize_speech_base64(clean_speech_text, voice, pitch, rate)
+                                    audio_b64 = await synthesize_speech_base64(speech_to_synthesize, voice, pitch, rate)
                                     if audio_b64:
                                         audio_event = {
                                             "type": "audio",
                                             "index": cur_idx,
-                                            "text": sentence_to_speak,
+                                            "raw_text": raw_sentence,
+                                            "spoken_text": speech_to_synthesize,
+                                            "actions": detected_actions,
                                             "audio_base64": audio_b64
                                         }
                                         yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
+                                elif detected_actions:
+                                    # Action-only event (e.g. avatar expression change without speech)
+                                    action_event = {
+                                        "type": "action_cue",
+                                        "actions": detected_actions
+                                    }
+                                    yield f"data: {json.dumps(action_event, ensure_ascii=False)}\n\n"
 
                         if chunk_json.get("done", False):
                             break
 
-            # Flush remaining sentence buffer if any
+            # Flush remaining buffer
             if req.voice_enabled and sentence_buffer.strip():
-                clean_speech_text = re.sub(r'[\*\#\_`\[\]\(\)\{\}]', '', sentence_buffer.strip())
-                if len(clean_speech_text) >= 1:
-                    audio_b64 = await synthesize_speech_base64(clean_speech_text, voice, pitch, rate)
+                speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
+                if speech_to_synthesize:
+                    audio_b64 = await synthesize_speech_base64(speech_to_synthesize, voice, pitch, rate)
                     if audio_b64:
                         audio_event = {
                             "type": "audio",
                             "index": sentence_index,
-                            "text": sentence_buffer.strip(),
+                            "raw_text": sentence_buffer.strip(),
+                            "spoken_text": speech_to_synthesize,
+                            "actions": detected_actions,
                             "audio_base64": audio_b64
                         }
                         yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
 
-            # Completion event
             done_event = {"type": "done", "full_text": full_response_text}
             yield f"data: {json.dumps(done_event, ensure_ascii=False)}\n\n"
 
