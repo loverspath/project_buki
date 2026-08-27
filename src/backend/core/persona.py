@@ -4,7 +4,7 @@ from typing import Dict, Any
 PERSONAS: Dict[str, Dict[str, Any]] = {
     "mesugaki": {
         "id": "mesugaki",
-        "name": "메스가키 (Gemma / Qwen Mesugaki)",
+        "name": "메스가키 (오리지널 한국어)",
         "default_model": "huihui_ai/qwen2.5-coder-abliterate:14b",
         "voice": "ko-KR-SunHiNeural",
         "voice_pitch": "+40Hz",
