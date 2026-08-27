@@ -170,6 +170,7 @@ class BukiMobileClient {
         this.stopAudioQueue();
       }
       this.updateTTSBadge();
+      this.saveSettings();
     });
 
     // Settings Modal
@@ -185,11 +186,18 @@ class BukiMobileClient {
         const p = btn.dataset.persona;
         this.personaSelect.value = p;
         this.updateTheme();
+        this.saveSettings();
       });
     });
 
+    // Model Select change
+    this.modelSelect.addEventListener('change', () => this.saveSettings());
+
     // TTS Engine Select change
-    this.ttsEngineSelect.addEventListener('change', () => this.updateTTSBadge());
+    this.ttsEngineSelect.addEventListener('change', () => {
+      this.updateTTSBadge();
+      this.saveSettings();
+    });
 
     // Quick Action Chips
     document.querySelectorAll('.quick-chips-bar .chip-btn').forEach(chip => {
@@ -614,34 +622,151 @@ class BukiMobileClient {
     }
   }
 
+  saveSettings() {
+    try {
+      const settings = {
+        persona: this.personaSelect ? this.personaSelect.value : 'mesugaki',
+        model: this.modelSelect ? this.modelSelect.value : 'z-ai/glm-5.3-flash',
+        ttsEngine: this.ttsEngineSelect ? this.ttsEngineSelect.value : 'gpt_sovits',
+        voiceEnabled: this.voiceEnabled,
+        scriptPersona: this.scriptPersonaSelect ? this.scriptPersonaSelect.value : 'mesugaki',
+        scriptTtsEngine: this.scriptTtsEngineSelect ? this.scriptTtsEngineSelect.value : 'gpt_sovits'
+      };
+      localStorage.setItem('buki_user_settings', JSON.stringify(settings));
+    } catch (e) {
+      console.warn('Could not save settings to localStorage:', e);
+    }
+  }
+
+  loadSavedSettings() {
+    try {
+      const raw = localStorage.getItem('buki_user_settings');
+      if (!raw) return;
+      const s = JSON.parse(raw);
+
+      if (s.persona && this.personaSelect) {
+        this.personaSelect.value = s.persona;
+        this.personaGrid.querySelectorAll('.segment-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.persona === s.persona);
+        });
+        this.updateTheme();
+      }
+
+      if (s.model && this.modelSelect) {
+        // Check if option exists
+        const opt = this.modelSelect.querySelector(`option[value="${s.model}"]`);
+        if (opt) {
+          this.modelSelect.value = s.model;
+        }
+      }
+
+      if (s.ttsEngine && this.ttsEngineSelect) {
+        this.ttsEngineSelect.value = s.ttsEngine;
+        this.updateTTSBadge();
+      }
+
+      if (s.voiceEnabled !== undefined) {
+        this.voiceEnabled = s.voiceEnabled;
+        if (this.voiceEnabled) {
+          this.quickVoiceBtn.classList.add('active');
+          this.quickVoiceBtn.querySelector('.pill-icon').textContent = '🔊';
+          this.voiceStatusText.textContent = '음성 ON';
+        } else {
+          this.quickVoiceBtn.classList.remove('active');
+          this.quickVoiceBtn.querySelector('.pill-icon').textContent = '🔇';
+          this.voiceStatusText.textContent = '음성 OFF';
+        }
+        this.updateTTSBadge();
+      }
+
+      if (s.scriptPersona && this.scriptPersonaSelect) {
+        this.scriptPersonaSelect.value = s.scriptPersona;
+      }
+
+      if (s.scriptTtsEngine && this.scriptTtsEngineSelect) {
+        this.scriptTtsEngineSelect.value = s.scriptTtsEngine;
+      }
+    } catch (e) {
+      console.warn('Could not load saved settings:', e);
+    }
+  }
+
   async fetchModelsAndPersonas() {
     try {
       const res = await fetch('/api/info');
       if (res.ok) {
         const data = await res.json();
-        if (data.models && data.models.length > 0) {
-          const friendlyNames = {
-            'nvidia/nemotron-3-ultra-550b-a55b': '🚀 Nemotron 3 Ultra (550B 초지능 👑)',
-            'nvidia/nemotron-3-super-120b-a12b': '⚡ Nemotron 3 Super (120B)',
-            'nvidia/llama-3.1-nemotron-70b-instruct': '🔥 Llama 3.1 Nemotron (70B)',
-            'deepseek-ai/deepseek-v4-pro-0813': '🧠 DeepSeek V4 Pro (NVIDIA)',
-            'huihui_ai/qwen2.5-coder-abliterate:14b': '💻 Qwen 2.5 14B 무검열 (로컬 코더)',
-            'gemma4-uncensored:latest': '🌸 Gemma 4 12B 무검열 (로컬 상황극)',
-            'gemma-mesugaki:latest': '😏 Gemma Mesugaki (로컬 메스가키)',
-            'huihui_ai/qwen3.5-abliterated:9b': '⚡ Qwen 3.5 9B 무검열 (로컬 초고속)'
-          };
+        const categorized = data.categorized_models || {};
+        
+        const friendlyNames = {
+          // OpenRouter Models
+          'z-ai/glm-5.3-flash': '🔥 옥스알파 / GLM-5.3 Flash (스텔스 1위)',
+          'minimax/minimax-m3:free': '⭐ MiniMax M3 (1M 컨텍스트 무료)',
+          'openrouter/free': '🚀 OpenRouter Free (스마트 자동 라우터)',
+          'google/gemma-4-31b-it:free': '🌸 Google Gemma 4 31B (무료)',
+          'google/gemma-4-26b-a4b-it:free': '✨ Google Gemma 4 26B MoE (무료)',
+          'nvidia/nemotron-3-ultra-550b-a55b:free': '👑 Nemotron 3 Ultra 550B (오픈라우터 무료)',
+          'thinkingmachines/inkling:free': '🧠 Thinking Machines Inkling (975B 무료)',
+          'poolside/laguna-s-2.1:free': '💻 Poolside Laguna S 2.1 (코딩 118B)',
+          'z-ai/glm-5.2:free': '⚡ Z.ai GLM 5.2 (256k 추론 무료)',
+          
+          // NVIDIA Direct Cloud
+          'nvidia/nemotron-3-ultra-550b-a55b': '👑 Nemotron 3 Ultra (550B 플래그십)',
+          'nvidia/nemotron-3-super-120b-a12b': '⚡ Nemotron 3 Super (120B)',
+          'nvidia/llama-3.1-nemotron-70b-instruct': '🔥 Llama 3.1 Nemotron (70B)',
+          'deepseek-ai/deepseek-v4-pro-0813': '🧠 DeepSeek V4 Pro',
 
-          this.modelSelect.innerHTML = '';
-          data.models.forEach(m => {
+          // Local GPU Ollama
+          'huihui_ai/qwen2.5-coder-abliterate:14b': '💻 Qwen 2.5 14B 무검열 (로컬 추천)',
+          'gemma4-uncensored:latest': '🌸 Gemma 4 12B 무검열 (로컬)',
+          'gemma-mesugaki:latest': '😏 Gemma Mesugaki (로컬 전용)',
+          'huihui_ai/qwen3.5-abliterated:9b': '⚡ Qwen 3.5 9B 무검열 (로컬 초고속)'
+        };
+
+        this.modelSelect.innerHTML = '';
+
+        // 1. OpenRouter Group
+        if (categorized.openrouter_free && categorized.openrouter_free.length > 0) {
+          const grp = document.createElement('optgroup');
+          grp.label = '🌐 오픈라우터 무료 AI (OpenRouter Free)';
+          categorized.openrouter_free.forEach(m => {
             const opt = document.createElement('option');
             opt.value = m;
             opt.textContent = friendlyNames[m] || m;
-            if (m === 'nvidia/nemotron-3-ultra-550b-a55b') {
-              opt.selected = true;
-            }
-            this.modelSelect.appendChild(opt);
+            grp.appendChild(opt);
           });
+          this.modelSelect.appendChild(grp);
         }
+
+        // 2. NVIDIA Cloud Group
+        if (categorized.nvidia_cloud && categorized.nvidia_cloud.length > 0) {
+          const grp = document.createElement('optgroup');
+          grp.label = '🚀 NVIDIA 클라우드 API (엔비디아)';
+          categorized.nvidia_cloud.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = friendlyNames[m] || m;
+            grp.appendChild(opt);
+          });
+          this.modelSelect.appendChild(grp);
+        }
+
+        // 3. Local Ollama Group
+        if (categorized.local_ollama && categorized.local_ollama.length > 0) {
+          const grp = document.createElement('optgroup');
+          grp.label = '💻 로컬 GPU 모델 (Ollama)';
+          categorized.local_ollama.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = friendlyNames[m] || m;
+            grp.appendChild(opt);
+          });
+          this.modelSelect.appendChild(grp);
+        }
+
+        // Restore cached user settings
+        this.loadSavedSettings();
+
         if (data.gpt_sovits_online) {
           this.ttsStatusDetail.innerHTML = '현재 상태: 🟢 <strong>GPT-SoVITS 온라인 연결됨</strong> (포트 9880)';
         }

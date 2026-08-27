@@ -21,17 +21,48 @@ from tts.tts_manager import synthesize_smart_speech
 from tts.gpt_sovits_service import is_gpt_sovits_alive, GPT_SOVITS_URL
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+
+# Load local .env if available
+env_path = Path(__file__).parent.parent.parent / ".env"
+if env_path.exists():
+    try:
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if "=" in line and not line.strip().startswith("#"):
+                    k, v = line.strip().split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip())
+    except Exception as e:
+        print(f"[Env Loader] Error: {e}")
+
+# NVIDIA API Configuration
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
-NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "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")
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
+
+# OpenRouter API Configuration
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
+# Curated Model Catalog
+OPENROUTER_MODELS = [
+    "z-ai/glm-5.3-flash",                    # 옥스알파 (OxAlpha / 0xAlpha) 스텔스 최신 모델!
+    "minimax/minimax-m3:free",               # MiniMax M3 (1M 컨텍스트 무료)
+    "openrouter/free",                       # OpenRouter 스마트 자동 라우터
+    "google/gemma-4-31b-it:free",            # Google Gemma 4 31B
+    "google/gemma-4-26b-a4b-it:free",        # Google Gemma 4 26B MoE
+    "nvidia/nemotron-3-ultra-550b-a55b:free", # OpenRouter Nemotron 550B 무료
+    "thinkingmachines/inkling:free",         # Thinking Machines Inkling (975B)
+    "poolside/laguna-s-2.1:free",            # Poolside Laguna S 2.1 (코딩 118B)
+    "z-ai/glm-5.2:free"                      # Z.ai GLM 5.2
+]
 
 NVIDIA_MODELS = [
-    "nvidia/nemotron-3-ultra-550b-a55b",
+    "nvidia/nemotron-3-ultra-550b-a55b",     # NVIDIA 직접 550B 플래그십
     "nvidia/nemotron-3-super-120b-a12b",
     "nvidia/llama-3.1-nemotron-70b-instruct",
     "deepseek-ai/deepseek-v4-pro-0813"
 ]
 
-app = FastAPI(title="Project BUKI - Local LLM & TTS Companion Engine")
+app = FastAPI(title="Project BUKI - Local & Cloud LLM + TTS Companion Engine")
 
 app.add_middleware(
     CORSMiddleware,
@@ -88,12 +119,7 @@ def is_safe_sentence_boundary(buffer: str) -> bool:
     return any(p in buffer for p in [".", "!", "?", "\n", "~", "…"])
 
 def parse_script_into_segments(script_text: str, default_persona: str = "mesugaki") -> List[Dict[str, Any]]:
-    """
-    Parses a raw script:
-    - Text in double quotes / Korean quotes ("...", “...”, 「...」) is Dialogue.
-    - Text outside quotes is Narration / Situation.
-    - Infers emotional tone from narration keywords to drive GPT-SoVITS emotion banks.
-    """
+    """Parses raw script text into dialogue and narration segments."""
     normalized = script_text.replace("“", '"').replace("”", '"').replace("「", '"').replace("」", '"').replace("『", '"').replace("』", '"')
     parts = re.split(r'(".*?")', normalized)
     
@@ -164,15 +190,21 @@ async def get_system_info():
     except Exception as e:
         print(f"[Ollama Tags Error] {e}")
 
-    # Combine Cloud NVIDIA Frontier models and Local Ollama models
-    all_models = NVIDIA_MODELS + [m for m in local_models if m not in NVIDIA_MODELS]
+    categorized_models = {
+        "openrouter_free": OPENROUTER_MODELS,
+        "nvidia_cloud": NVIDIA_MODELS,
+        "local_ollama": [m for m in local_models if m not in NVIDIA_MODELS and m not in OPENROUTER_MODELS]
+    }
 
+    flat_models = OPENROUTER_MODELS + NVIDIA_MODELS + categorized_models["local_ollama"]
     gpt_sovits_status = await is_gpt_sovits_alive()
 
     return {
         "personas": list(PERSONAS.values()),
-        "models": all_models,
+        "models": flat_models,
+        "categorized_models": categorized_models,
         "default_persona": "mesugaki",
+        "default_model": "z-ai/glm-5.3-flash",
         "default_tts_engine": "gpt_sovits",
         "gpt_sovits_url": GPT_SOVITS_URL,
         "gpt_sovits_online": gpt_sovits_status,
@@ -231,7 +263,7 @@ async def tts_script_segment(req: ScriptSegmentTTSRequest):
 @app.post("/api/chat/stream")
 async def chat_stream(req: ChatStreamRequest):
     persona = PERSONAS.get(req.persona_id, PERSONAS["mesugaki"])
-    model_to_use = req.model or "nvidia/nemotron-3-ultra-550b-a55b"
+    model_to_use = req.model or "z-ai/glm-5.3-flash"
     system_prompt = req.custom_system_prompt or persona.get("system_prompt", "")
     tts_engine_pref = req.tts_engine or "gpt_sovits"
 
@@ -260,10 +292,95 @@ async def chat_stream(req: ChatStreamRequest):
             }
             yield f"data: {json.dumps(init_event, ensure_ascii=False)}\n\n"
 
-            # Check if model is NVIDIA Cloud API
-            is_nvidia = any(model_to_use.startswith(prefix) for prefix in ["nvidia/", "deepseek-ai/", "meta/", "mistralai/"])
+            # Check Model Source
+            is_openrouter = model_to_use in OPENROUTER_MODELS or ":free" in model_to_use or model_to_use.startswith("z-ai/") or model_to_use.startswith("minimax/") or model_to_use.startswith("thinkingmachines/") or model_to_use.startswith("poolside/")
+            is_nvidia = (not is_openrouter) and any(model_to_use.startswith(prefix) for prefix in ["nvidia/", "deepseek-ai/", "meta/", "mistralai/"])
 
-            if is_nvidia:
+            if is_openrouter:
+                # 1. OpenRouter API Streaming
+                openrouter_payload = {
+                    "model": model_to_use,
+                    "messages": messages,
+                    "temperature": 0.8,
+                    "stream": True
+                }
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "HTTP-Referer": "https://github.com/loverspath/project_buki",
+                    "X-Title": "Project BUKI"
+                }
+
+                yield ": keep-alive\n\n"
+                timeout_cfg = httpx.Timeout(240.0, connect=30.0, read=240.0, write=30.0)
+
+                async with httpx.AsyncClient(timeout=timeout_cfg) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{OPENROUTER_BASE_URL}/chat/completions",
+                        json=openrouter_payload,
+                        headers=headers
+                    ) as response:
+                        if response.status_code != 200:
+                            err_body = await response.aread()
+                            err_chunk = {"type": "error", "message": f"OpenRouter HTTP {response.status_code}: {err_body.decode()[:150]}"}
+                            yield f"data: {json.dumps(err_chunk, ensure_ascii=False)}\n\n"
+                            return
+
+                        async for line in response.aiter_lines():
+                            if not line:
+                                continue
+                            if line.startswith("data: ") and line.strip() != "data: [DONE]":
+                                try:
+                                    chunk_json = json.loads(line[6:])
+                                    delta = chunk_json.get("choices", [{}])[0].get("delta", {})
+                                    token = delta.get("content", "")
+                                except Exception:
+                                    continue
+
+                                if token:
+                                    full_response_text += token
+                                    sentence_buffer += token
+
+                                    token_event = {"type": "token", "token": token}
+                                    yield f"data: {json.dumps(token_event, ensure_ascii=False)}\n\n"
+
+                                    if req.voice_enabled and is_safe_sentence_boundary(sentence_buffer):
+                                        speech_to_synthesize, detected_actions = parse_dialogue_and_actions(sentence_buffer)
+                                        raw_sentence = sentence_buffer.strip()
+                                        sentence_buffer = ""
+
+                                        if speech_to_synthesize:
+                                            cur_idx = sentence_index
+                                            sentence_index += 1
+
+                                            audio_b64, engine_used = await synthesize_smart_speech(
+                                                text=speech_to_synthesize,
+                                                persona_id=persona["id"],
+                                                persona_config=persona,
+                                                detected_actions=detected_actions,
+                                                preferred_engine=tts_engine_pref
+                                            )
+                                            if audio_b64:
+                                                audio_event = {
+                                                    "type": "audio",
+                                                    "index": cur_idx,
+                                                    "raw_text": raw_sentence,
+                                                    "spoken_text": speech_to_synthesize,
+                                                    "actions": detected_actions,
+                                                    "engine_used": engine_used,
+                                                    "audio_base64": audio_b64
+                                                }
+                                                yield f"data: {json.dumps(audio_event, ensure_ascii=False)}\n\n"
+                                        elif detected_actions:
+                                            action_event = {
+                                                "type": "action_cue",
+                                                "actions": detected_actions
+                                            }
+                                            yield f"data: {json.dumps(action_event, ensure_ascii=False)}\n\n"
+
+            elif is_nvidia:
+                # 2. NVIDIA Direct API Streaming
                 nvidia_payload = {
                     "model": model_to_use,
                     "messages": messages,
@@ -277,10 +394,9 @@ async def chat_stream(req: ChatStreamRequest):
                     "Authorization": f"Bearer {NVIDIA_API_KEY}"
                 }
 
-                # Send initial keep-alive ping immediately for low TTFT latency
                 yield ": keep-alive\n\n"
-
                 timeout_cfg = httpx.Timeout(240.0, connect=30.0, read=240.0, write=30.0)
+
                 async with httpx.AsyncClient(timeout=timeout_cfg) as client:
                     async with client.stream(
                         "POST",
@@ -347,7 +463,7 @@ async def chat_stream(req: ChatStreamRequest):
                                             yield f"data: {json.dumps(action_event, ensure_ascii=False)}\n\n"
 
             else:
-                # Local Ollama Streaming
+                # 3. Local Ollama Streaming
                 ollama_payload = {
                     "model": model_to_use,
                     "messages": messages,

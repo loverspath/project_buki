@@ -1,4 +1,4 @@
-﻿# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,5 +19,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Logs
+# Logs & Secrets
 *.log
+.env
+.env.*
+test_*.py
+search_*.py
