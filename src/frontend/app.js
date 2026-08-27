@@ -620,12 +620,20 @@ class BukiMobileClient {
       if (res.ok) {
         const data = await res.json();
         if (data.models && data.models.length > 0) {
+          const friendlyNames = {
+            'huihui_ai/qwen2.5-coder-abliterate:14b': '👑 Qwen 2.5 14B 무검열 (고지능 추천)',
+            'gemma4-uncensored:latest': '🌸 Gemma 4 12B 무검열 (소설/상황극)',
+            'gemma-mesugaki:latest': '😏 Gemma Mesugaki (메스가키 전용)',
+            'huihui_ai/qwen3.5-abliterated:9b': '⚡ Qwen 3.5 9B 무검열 (초고속)',
+            'gemma-mesugaki:toolcall': '🛠️ Gemma Mesugaki (툴콜)'
+          };
+
           this.modelSelect.innerHTML = '';
           data.models.forEach(m => {
             const opt = document.createElement('option');
             opt.value = m;
-            opt.textContent = m;
-            if (m === 'gemma-mesugaki:latest' || m.includes('mesugaki')) {
+            opt.textContent = friendlyNames[m] || m;
+            if (m === 'huihui_ai/qwen2.5-coder-abliterate:14b') {
               opt.selected = true;
             }
             this.modelSelect.appendChild(opt);

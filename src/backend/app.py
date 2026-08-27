@@ -271,6 +271,7 @@ async def chat_stream(req: ChatStreamRequest):
                 "options": {
                     "temperature": 0.85,
                     "top_p": 0.9,
+                    "repeat_penalty": 1.15,
                     "num_ctx": 4096
                 }
             }
