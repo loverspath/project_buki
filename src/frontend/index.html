@@ -14,8 +14,10 @@
     <!-- Header -->
     <header class="app-header glass-card">
       <div class="brand">
-        <div class="status-indicator online" id="statusIndicator"></div>
-        <h1 class="logo-text">BUKI <span>ENGINE</span></h1>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="status-indicator online" id="statusIndicator"></div>
+          <h1 class="logo-text">BUKI <span>ENGINE</span></h1>
+        </div>
       </div>
 
       <div class="controls-bar">
@@ -39,18 +41,18 @@
         <div class="control-group">
           <label for="ttsEngineSelect">TTS 엔진</label>
           <select id="ttsEngineSelect" class="glass-select">
-            <option value="auto" selected>자동 (GPT-SoVITS ➔ Edge-TTS)</option>
+            <option value="auto" selected>자동 (GPT-SoVITS ➔ Edge)</option>
             <option value="gpt_sovits">GPT-SoVITS (3초 제로샷)</option>
             <option value="edge_tts">Edge-TTS (초고속)</option>
           </select>
         </div>
 
         <div class="control-group voice-toggle-group">
+          <span class="toggle-label" style="font-size:0.8rem; color:#8b949e; margin-right:4px;">🔊 음성 출력</span>
           <label class="toggle-switch">
             <input type="checkbox" id="voiceToggle" checked>
             <span class="slider"></span>
           </label>
-          <span class="toggle-label">🔊 음성</span>
         </div>
       </div>
     </header>
@@ -67,15 +69,17 @@
           </div>
         </div>
 
-        <div class="persona-badge" id="personaBadge">
-          <span class="badge-tag">STATUS</span>
-          <span class="badge-name" id="badgeName">메스가키 (Gemma)</span>
-        </div>
-        
-        <div class="speaking-state" id="speakingState">대기 중</div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <div class="persona-badge" id="personaBadge">
+            <span class="badge-tag">STATUS</span>
+            <span class="badge-name" id="badgeName">메스가키 (Gemma)</span>
+          </div>
+          
+          <div class="speaking-state" id="speakingState">대기 중</div>
 
-        <div class="tts-engine-status" id="ttsEngineBadge" style="margin-top: 10px; font-size: 0.75rem; color: #8b949e;">
-          🎙️ TTS: <span id="ttsStatusText">Edge-TTS 활성</span>
+          <div class="tts-status-card">
+            <span id="ttsStatusText">🎙️ Edge-TTS 활성 (GPT-SoVITS 대기)</span>
+          </div>
         </div>
       </section>
 
