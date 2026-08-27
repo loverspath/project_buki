@@ -299,8 +299,13 @@ async def chat_stream(req: ChatStreamRequest):
 
             # Check Model Source via ConfigManager
             is_gemini = model_to_use in config.gemini_models or model_to_use.startswith("gemini-")
-            is_openrouter = (not is_gemini) and (model_to_use in config.openrouter_models or ":free" in model_to_use or any(model_to_use.startswith(p) for p in ["z-ai/", "minimax/", "thinkingmachines/", "poolside/"]))
-            is_nvidia = (not is_gemini) and (not is_openrouter) and (model_to_use in config.nvidia_models or any(model_to_use.startswith(p) for p in ["nvidia/", "deepseek-ai/", "meta/", "mistralai/"]))
+            is_nvidia = (not is_gemini) and (model_to_use in config.nvidia_models or any(model_to_use.startswith(p) for p in ["nvidia/", "meta/", "mistralai/"]))
+            is_openrouter = (not is_gemini) and (not is_nvidia) and (
+                model_to_use in config.openrouter_models or 
+                ":free" in model_to_use or 
+                model_to_use == "openrouter/free" or 
+                any(model_to_use.startswith(p) for p in ["deepseek/", "z-ai/", "minimax/", "thinkingmachines/", "poolside/", "liquid/", "google/", "meta-llama/"])
+            )
 
             if is_gemini:
                 # 0. Google Gemini API Streaming

@@ -822,27 +822,23 @@ class BukiMobileClient {
         
         const friendlyNames = {
           // Google Gemini Official
-          'gemini-2.0-flash': '✨ Google Gemini 2.0 Flash (공식 무료 API - 1순위 추천)',
-          'gemini-1.5-flash': '🌟 Google Gemini 1.5 Flash (공식 무료 API)',
+          'gemini-2.0-flash': '✨ Google Gemini 2.0 Flash (공식 무료 API 키 필요)',
+          'gemini-1.5-flash': '🌟 Google Gemini 1.5 Flash (공식 무료 API 키 필요)',
           'gemini-2.0-flash-lite-preview-02-05': '⚡ Google Gemini 2.0 Flash Lite (초경량/고속)',
 
           // OpenRouter Models
-          'google/gemini-2.0-flash-exp:free': '✨ Gemini 2.0 Flash Exp (OpenRouter 무료)',
-          'z-ai/glm-5.3-flash': '🔥 옥스알파 / GLM-5.3 Flash (스텔스 1위)',
-          'minimax/minimax-m3:free': '⭐ MiniMax M3 (1M 컨텍스트 무료)',
-          'openrouter/free': '🚀 OpenRouter Free (스마트 자동 라우터)',
-          'google/gemma-4-31b-it:free': '🌸 Google Gemma 4 31B (무료)',
-          'google/gemma-4-26b-a4b-it:free': '✨ Google Gemma 4 26B MoE (무료)',
-          'nvidia/nemotron-3-ultra-550b-a55b:free': '👑 Nemotron 3 Ultra 550B (오픈라우터 무료)',
+          'openrouter/free': '🚀 OpenRouter Free (⭐ 스마트 고가용성 무료 라우터 - 1순위 추천)',
+          'minimax/minimax-m3:free': '⭐ MiniMax M3 (1M 초대용량 컨텍스트 무료)',
+          'deepseek/deepseek-chat': '🧠 DeepSeek V3 (초고성능 범용 챗)',
+          'nvidia/nemotron-3-super-120b-a12b:free': '⚡ NVIDIA Nemotron 120B (무료)',
+          'nvidia/nemotron-3-ultra-550b-a55b:free': '👑 Nemotron 3 Ultra 550B (무료)',
+          'liquid/lfm-2.5-2.6b:free': '💧 Liquid LFM 2.5 (초고속 추론 무료)',
           'thinkingmachines/inkling:free': '🧠 Thinking Machines Inkling (975B 무료)',
           'poolside/laguna-s-2.1:free': '💻 Poolside Laguna S 2.1 (코딩 118B)',
           'z-ai/glm-5.2:free': '⚡ Z.ai GLM 5.2 (256k 추론 무료)',
           
           // NVIDIA Direct Cloud
-          'nvidia/nemotron-3-ultra-550b-a55b': '👑 Nemotron 3 Ultra (550B 플래그십)',
-          'nvidia/nemotron-3-super-120b-a12b': '⚡ Nemotron 3 Super (120B)',
-          'nvidia/llama-3.1-nemotron-70b-instruct': '🔥 Llama 3.1 Nemotron (70B)',
-          'deepseek-ai/deepseek-v4-pro-0813': '🧠 DeepSeek V4 Pro',
+          'nvidia/nemotron-3-super-120b-a12b': '⚡ Nemotron 3 Super (120B 클라우드)',
 
           // Local GPU Ollama
           'huihui_ai/qwen2.5-coder-abliterate:14b': '💻 Qwen 2.5 14B 무검열 (로컬 추천)',

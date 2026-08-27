@@ -12,27 +12,23 @@
       "gemini-2.0-flash-lite-preview-02-05"
     ],
     "openrouter_free": [
-      "google/gemini-2.0-flash-exp:free",
-      "z-ai/glm-5.3-flash",
-      "minimax/minimax-m3:free",
       "openrouter/free",
-      "google/gemma-4-31b-it:free",
-      "google/gemma-4-26b-a4b-it:free",
+      "minimax/minimax-m3:free",
+      "deepseek/deepseek-chat",
+      "nvidia/nemotron-3-super-120b-a12b:free",
       "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "liquid/lfm-2.5-2.6b:free",
       "thinkingmachines/inkling:free",
       "poolside/laguna-s-2.1:free",
       "z-ai/glm-5.2:free"
     ],
     "nvidia_cloud": [
-      "nvidia/nemotron-3-ultra-550b-a55b",
-      "nvidia/nemotron-3-super-120b-a12b",
-      "nvidia/llama-3.1-nemotron-70b-instruct",
-      "deepseek-ai/deepseek-v4-pro-0813"
+      "nvidia/nemotron-3-super-120b-a12b"
     ]
   },
   "defaults": {
     "persona": "mesugaki",
-    "model": "gemini-2.0-flash",
+    "model": "openrouter/free",
     "tts_engine": "gpt_sovits",
     "acting_emotion": "auto"
   },
