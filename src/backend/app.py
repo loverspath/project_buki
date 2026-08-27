@@ -127,7 +127,7 @@ def is_safe_sentence_boundary(buffer: str) -> bool:
     return any(p in buffer for p in [".", "!", "?", "\n", "~", "…"])
 
 def parse_script_into_segments(script_text: str, default_persona: str = "mesugaki") -> List[Dict[str, Any]]:
-    """Parses raw script text into dialogue and narration segments."""
+    """Parses raw script text into dialogue and narration segments with comprehensive emotion analysis."""
     normalized = script_text.replace("“", '"').replace("”", '"').replace("「", '"').replace("」", '"').replace("『", '"').replace("』", '"')
     parts = re.split(r'(".*?")', normalized)
     
@@ -141,27 +141,51 @@ def parse_script_into_segments(script_text: str, default_persona: str = "mesugak
             continue
             
         if part_str.startswith('"') and part_str.endswith('"'):
-            dialogue_text = part_str[1:-1].strip()
-            if not dialogue_text:
+            raw_dialogue = part_str[1:-1].strip()
+            if not raw_dialogue:
                 continue
             
-            inferred_emotion = "default"
-            ctx_lower = current_context.lower()
+            clean_speech, inline_actions = parse_dialogue_and_actions(raw_dialogue)
+            action_text = " ".join(inline_actions)
+            combined_ctx = f"{current_context} {action_text}".lower()
             
-            if any(k in ctx_lower for k in ["비웃", "피식", "혀를 차", "한심", "콧방귀", "멍청", "허접", "풋", "깔보", "우쭐"]):
+            inferred_emotion = "default"
+            # 1. Sensual / Moan
+            if any(k in combined_ctx for k in ["신음", "달아오른", "야릇", "흐트러", "앙탈", "달콤한 교성", "허덕이", "교태", "녹아내리", "애원"]):
+                inferred_emotion = "sensual"
+            # 2. Panting / Heavy Breath
+            elif any(k in combined_ctx for k in ["헐떡", "가쁜 숨", "거친 숨", "숨을 몰아쉬", "하악", "하아하아", "숨이 차"]):
+                inferred_emotion = "panting"
+            # 3. Terrified / Fear
+            elif any(k in combined_ctx for k in ["공포", "비명", "겁에 질", "사시나무", "떨며", "살려", "무서", "히익", "경악", "벌벌"]):
+                inferred_emotion = "terrified"
+            # 4. Resigned / Despair / Low & Slow
+            elif any(k in combined_ctx for k in ["체념", "낮은 목소리", "느린 목소리", "한숨", "절망", "무기력", "멍하니", "지친", "포기"]):
+                inferred_emotion = "resigned"
+            # 5. Crying / Weeping
+            elif any(k in combined_ctx for k in ["울먹", "눈물", "흐느끼", "훌쩍", "흑흑"]):
+                inferred_emotion = "crying"
+            # 6. Whisper / ASMR
+            elif any(k in combined_ctx for k in ["속삭", "귓가", "소곤", "귓속말", "살며시 다가와", "귀에 대고"]):
+                inferred_emotion = "whisper"
+            # 7. Flustered / Shy
+            elif any(k in combined_ctx for k in ["얼굴을 붉", "부끄러", "더듬", "우물쭈물", "시선을 피", "당황", "홍조", "부끄"]):
+                inferred_emotion = "flustered"
+            # 8. Smug / Mesugaki
+            elif any(k in combined_ctx for k in ["비웃", "피식", "혀를 차", "한심", "콧방귀", "멍청", "허접", "풋", "깔보", "우쭐"]):
                 inferred_emotion = "smug"
-            elif any(k in ctx_lower for k in ["놀리", "장난", "귓가", "속삭", "살살", "우후후", "쿠후후", "킥킥", "쿡쿡"]):
+            # 9. Tease / Playful
+            elif any(k in combined_ctx for k in ["놀리", "장난", "우후후", "쿠후후", "킥킥", "쿡쿡"]):
                 inferred_emotion = "tease"
-            elif any(k in ctx_lower for k in ["화", "버럭", "소리치", "짜증", "인상", "노려보", "째려", "가만 안"]):
+            # 10. Angry / Scream
+            elif any(k in combined_ctx for k in ["화", "버럭", "소리치", "짜증", "인상", "노려보", "째려", "가만 안"]):
                 inferred_emotion = "angry"
-            elif any(k in ctx_lower for k in ["얼굴을 붉", "부끄러", "더듬", "우물쭈물", "시선을 피", "당황", "홍조"]):
-                inferred_emotion = "shy"
                 
             segments.append({
                 "id": seg_id,
                 "type": "dialogue",
                 "text": part_str,
-                "spoken_text": dialogue_text,
+                "spoken_text": clean_speech or raw_dialogue,
                 "context_narration": current_context,
                 "inferred_emotion": inferred_emotion,
                 "persona_id": default_persona

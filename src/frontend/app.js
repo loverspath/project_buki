@@ -62,7 +62,9 @@ class BukiMobileClient {
     // Script Presets
     this.presetMutsuki = document.getElementById('presetMutsuki');
     this.presetMorning = document.getElementById('presetMorning');
-    this.presetTsundere = document.getElementById('presetTsundere');
+    this.presetSensual = document.getElementById('presetSensual');
+    this.presetFear = document.getElementById('presetFear');
+    this.presetResigned = document.getElementById('presetResigned');
 
     // Persistent Mobile Audio Engine
     this.audioPlayer = new Audio();
@@ -325,15 +327,35 @@ class BukiMobileClient {
       });
     }
 
-    if (this.presetTsundere) {
-      this.presetTsundere.addEventListener('click', () => {
+    if (this.presetSensual) {
+      this.presetSensual.addEventListener('click', () => {
         this.scriptInputText.value = 
-`(팔짱을 끼고 턱을 치켜들며 비웃는다.)
-"어라~? 그 정도 문제도 혼자서 못 풀어서 끙끙대고 있었던 거야?"
-피식 웃으며 머리를 콩 쥐어박았다.
-"진짜 한심하네~ 오빠는 내가 없으면 아무것도 못 하는 게 분명해."
-도발적인 눈빛으로 쳐다보며 말했다.
-"뭐, 정 부탁하면 이 천재인 내가 조금은 도와줄 수도 있는데... 어때?"`;
+`(부끄러운 듯 얼굴을 붉히며 가쁜 숨을 내쉰다.)
+"바보 오빠... 어딜 그렇게 뚫어져라 보고 있는 거야...?"
+그녀는 살짝 달아오른 목소리로 신음하듯 귓가에 속삭였다.
+"자꾸 그렇게 쳐다보면... 나도 몰라... 읏...♡"
+그러고는 부끄러운 듯 고개를 숙이며 앙탈을 부렸다.
+"오빠는 진짜 못말리는 변태라니까..."`;
+      });
+    }
+
+    if (this.presetFear) {
+      this.presetFear.addEventListener('click', () => {
+        this.scriptInputText.value = 
+`(어둠 속에서 무언가 다가오자 사시나무처럼 벌벌 떨며 비명을 지른다.)
+"히익...! 저, 저게 뭐야?! 오빠, 살려줘!"
+겁에 질려 눈물을 글썽이며 오빠의 옷자락을 꽉 붙잡았다.
+"제발... 무섭단 말이야...! 가지 마...!"`;
+      });
+    }
+
+    if (this.presetResigned) {
+      this.presetResigned.addEventListener('click', () => {
+        this.scriptInputText.value = 
+`(모든 것을 포기한 듯 깊은 한숨을 내쉬며 멍하니 쳐다본다.)
+"하아... 이제 다 끝났어. 아무것도 소용없어..."
+낮고 느린 지친 목소리로 무기력하게 중얼거렸다.
+"마음대로 해... 어차피 난 상관없으니까..."`;
       });
     }
 
@@ -438,21 +460,33 @@ class BukiMobileClient {
         el.className = 'script-item-dialogue';
         
         const emotionLabels = {
-          smug: '😏 비웃음/Smug',
-          tease: '✨ 장난/Tease',
-          angry: '😡 도발/Angry',
-          shy: '😳 부끄러움/Shy',
+          sensual: '💖 달아오름/신음',
+          panting: '🥵 헐떡임/숨소리',
+          flustered: '😳 부끄럼/당황',
+          shy: '😳 부끄러움',
+          whisper: '🤫 귓가 속삭임',
+          terrified: '😱 공포에 질림',
+          resigned: '🥀 낮고 느린 체념',
+          crying: '😢 흐느낌/울먹임',
+          smug: '😏 비웃음/조롱',
+          tease: '✨ 장난/소악마',
+          angry: '😡 분노/쏘아붙임',
           default: '💬 기본 대사'
         };
 
-        const emotionTag = emotionLabels[seg.inferred_emotion] || '💬 대사';
+        const activeEmo = (this.actingEmotion && this.actingEmotion !== 'auto') 
+          ? this.actingEmotion 
+          : seg.inferred_emotion;
+
+        const isForced = (this.actingEmotion && this.actingEmotion !== 'auto');
+        const emotionTag = (isForced ? '⚡ ' : '') + (emotionLabels[activeEmo] || '💬 대사');
         const speakerNames = { mesugaki: '메스가키', mutsuki: '무츠키', sayaka: '사야카', ruri: '루리' };
         const speaker = speakerNames[seg.persona_id] || '캐릭터';
 
         el.innerHTML = `
           <div class="dialogue-meta-row">
             <span class="dialogue-speaker-name">${speaker}</span>
-            <span class="dialogue-emotion-tag">${emotionTag}</span>
+            <span class="dialogue-emotion-tag ${activeEmo}">${emotionTag}</span>
           </div>
           <div class="dialogue-spoken-text">"${seg.spoken_text}"</div>
         `;
@@ -479,13 +513,27 @@ class BukiMobileClient {
       const curSegIdx = this.dialogueIndices[this.currentDialoguePointer];
       const curSeg = this.scriptSegments[curSegIdx];
       const emotionLabels = {
-        smug: '😏 비웃는 연기 톤',
+        sensual: '💖 달아오른 신음/앙탈 톤',
+        panting: '🥵 가쁜 숨/헐떡임 톤',
+        flustered: '😳 부끄러워하는 당황 톤',
+        shy: '😳 부끄러워하는 톤',
+        whisper: '🤫 귓가 속삭임/ASMR 톤',
+        terrified: '😱 공포에 질린 비명 톤',
+        resigned: '🥀 낮고 느린 체념 톤',
+        crying: '😢 흐느끼는 울먹임 톤',
+        smug: '😏 비웃는 조롱 톤',
         tease: '✨ 속삭이는 소악마 톤',
         angry: '😡 쏘아붙이는 도발 톤',
-        shy: '😳 부끄러워하는 톤',
         default: '💬 기본 톤'
       };
-      this.playerEmotionBadge.textContent = emotionLabels[curSeg.inferred_emotion] || '🎭 연기 모드';
+
+      const activeEmo = (this.actingEmotion && this.actingEmotion !== 'auto') 
+        ? this.actingEmotion 
+        : curSeg.inferred_emotion;
+
+      const isForced = (this.actingEmotion && this.actingEmotion !== 'auto');
+      const prefix = isForced ? '⚡(강제) ' : '';
+      this.playerEmotionBadge.textContent = prefix + (emotionLabels[activeEmo] || '🎭 연기 모드');
     }
   }
 
@@ -670,6 +718,7 @@ class BukiMobileClient {
 
   setActingEmotion(emotion) {
     this.actingEmotion = emotion || 'auto';
+    this.scriptAudioCache = {}; // Invalidate cached audio for new emotion
     if (this.emotionSelectTop) {
       this.emotionSelectTop.value = this.actingEmotion;
       if (this.actingEmotion !== 'auto') {
@@ -682,6 +731,10 @@ class BukiMobileClient {
     }
     if (this.emotionSelectSheet) {
       this.emotionSelectSheet.value = this.actingEmotion;
+    }
+    if (this.scriptSegments && this.scriptSegments.length > 0) {
+      this.renderScriptSegments();
+      this.updatePlayerProgress();
     }
     this.saveSettings();
   }
