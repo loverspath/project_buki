@@ -2,11 +2,12 @@
 import urllib.request
 import json
 import sys
+import time
 
 sys.stdout.reconfigure(encoding="utf-8")
 
 payload = {
-    "message": "오빠 지금 너무 졸린데 한 마디만 해줘.",
+    "message": "오빠 지금 코딩하다가 세그폴트 떴어... 나 좀 도와줘.",
     "persona_id": "mesugaki",
     "model": "nvidia/nemotron-3-ultra-550b-a55b",
     "voice_enabled": True,
@@ -19,8 +20,9 @@ req = urllib.request.Request(
     headers={"Content-Type": "application/json"}
 )
 
-print("Testing End-to-End Chat with Nemotron 3 Ultra 550B + GPT-SoVITS...")
-with urllib.request.urlopen(req, timeout=60) as res:
+print("Testing Nemotron 3 Ultra 550B Live Streaming with Mesugaki Tone...")
+t0 = time.time()
+with urllib.request.urlopen(req, timeout=120) as res:
     for line in res:
         line_str = line.decode("utf-8").strip()
         if line_str.startswith("data: "):
@@ -31,6 +33,6 @@ with urllib.request.urlopen(req, timeout=60) as res:
             elif t == "audio":
                 spoken = data.get("spoken_text")
                 eng = data.get("engine_used")
-                print(f"\n[🎙️ TTS Synthesized: '{spoken}' via {eng}]")
+                print(f"\n[🎙️ TTS: '{spoken}' via {eng}]")
 
-print("\n\nTest completed successfully!")
+print(f"\n\nTurn completed in {time.time()-t0:.2f}s!")

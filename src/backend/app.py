@@ -267,7 +267,8 @@ async def chat_stream(req: ChatStreamRequest):
                 nvidia_payload = {
                     "model": model_to_use,
                     "messages": messages,
-                    "temperature": 0.75,
+                    "temperature": 0.85,
+                    "top_p": 0.95,
                     "max_tokens": 1024,
                     "stream": True
                 }
@@ -276,7 +277,11 @@ async def chat_stream(req: ChatStreamRequest):
                     "Authorization": f"Bearer {NVIDIA_API_KEY}"
                 }
 
-                async with httpx.AsyncClient(timeout=120.0) as client:
+                # Send initial keep-alive ping immediately for low TTFT latency
+                yield ": keep-alive\n\n"
+
+                timeout_cfg = httpx.Timeout(240.0, connect=30.0, read=240.0, write=30.0)
+                async with httpx.AsyncClient(timeout=timeout_cfg) as client:
                     async with client.stream(
                         "POST",
                         f"{NVIDIA_BASE_URL}/chat/completions",
