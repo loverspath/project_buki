@@ -59,132 +59,132 @@
   },
   "shibuki": {
     "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-    "default_prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+    "default_prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
     "prompt_lang": "ko",
     "target_lang": "ko",
     "emotion_banks": {
       "neutral": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       },
       "question": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_010.wav",
-        "prompt_text": "여러분, 밤을 주웠어요. 상상도 못했죠?",
+        "prompt_text": "여러분 밤을 주워 왔어요 상상도 못했져?",
         "lang": "ko"
       },
       "tease": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_010.wav",
-        "prompt_text": "여러분, 밤을 주웠어요. 상상도 못했죠?",
+        "prompt_text": "여러분 밤을 주워 왔어요 상상도 못했져?",
         "lang": "ko"
       },
       "smug": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       },
       "flustered": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       }
     }
   },
   "shibuki_mesugaki": {
     "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-    "default_prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+    "default_prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
     "prompt_lang": "ko",
     "target_lang": "ko",
     "emotion_banks": {
       "neutral": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       },
       "question": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_010.wav",
-        "prompt_text": "여러분, 밤을 주웠어요. 상상도 못했죠?",
+        "prompt_text": "여러분 밤을 주워 왔어요 상상도 못했져?",
         "lang": "ko"
       },
       "tease": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_010.wav",
-        "prompt_text": "여러분, 밤을 주웠어요. 상상도 못했죠?",
+        "prompt_text": "여러분 밤을 주워 왔어요 상상도 못했져?",
         "lang": "ko"
       },
       "smug": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       },
       "flustered": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       }
     }
   },
   "shibuki_rimuru": {
     "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-    "default_prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+    "default_prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
     "prompt_lang": "ko",
     "target_lang": "ko",
     "emotion_banks": {
       "neutral": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       },
       "question": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_010.wav",
-        "prompt_text": "여러분, 밤을 주웠어요. 상상도 못했죠?",
+        "prompt_text": "여러분 밤을 주워 왔어요 상상도 못했져?",
         "lang": "ko"
       },
       "tease": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_010.wav",
-        "prompt_text": "여러분, 밤을 주웠어요. 상상도 못했죠?",
+        "prompt_text": "여러분 밤을 주워 왔어요 상상도 못했져?",
         "lang": "ko"
       },
       "smug": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       },
       "flustered": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       }
     }
   },
   "shibuki_base": {
     "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-    "default_prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+    "default_prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
     "prompt_lang": "ko",
     "target_lang": "ko",
     "emotion_banks": {
       "neutral": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       },
       "question": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_010.wav",
-        "prompt_text": "여러분, 밤을 주웠어요. 상상도 못했죠?",
+        "prompt_text": "여러분 밤을 주워 왔어요 상상도 못했져?",
         "lang": "ko"
       },
       "tease": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_010.wav",
-        "prompt_text": "여러분, 밤을 주웠어요. 상상도 못했죠?",
+        "prompt_text": "여러분 밤을 주워 왔어요 상상도 못했져?",
         "lang": "ko"
       },
       "smug": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       },
       "flustered": {
         "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_114.wav",
-        "prompt_text": "뽑아주고 내가 뭔가 나만의 각을 만들었어요",
+        "prompt_text": "뽑아주고 그 내가 뭔가 나만의 각을 만들어",
         "lang": "ko"
       }
     }
