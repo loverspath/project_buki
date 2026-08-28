@@ -28,6 +28,7 @@ class BukiMobileClient {
     this.personaGrid = document.getElementById('personaGrid');
     this.personaSelect = document.getElementById('personaSelect');
     this.modelSelect = document.getElementById('modelSelect');
+    this.ttsEngineSelectTop = document.getElementById('ttsEngineSelectTop');
     this.ttsEngineSelect = document.getElementById('ttsEngineSelect');
     this.ttsStatusDetail = document.getElementById('ttsStatusDetail');
     this.testVoiceBtn = document.getElementById('testVoiceBtn');
@@ -85,6 +86,7 @@ class BukiMobileClient {
     this.scriptAudioCache = {}; // id -> base64 audio
 
     this.personaColors = {
+      shibuki: '#ff9900',
       mesugaki: '#ff4d88',
       mutsuki: '#ff2d55',
       sayaka: '#4da6ff',
@@ -92,6 +94,7 @@ class BukiMobileClient {
     };
 
     this.personaFaces = {
+      shibuki: { idle: '🦊', speaking: '🗣️', laugh: '😆', smug: '😏', pout: '😤' },
       mesugaki: { idle: '😏', speaking: '😜', smirk: '😼', sigh: '😮‍💨', glare: '😒' },
       mutsuki: { idle: '💣', speaking: '😜', smirk: '😼', sigh: '😮‍💨', glare: '😈' },
       sayaka: { idle: '✨', speaking: '😊', laugh: '😆', think: '🤔' },
@@ -221,11 +224,35 @@ class BukiMobileClient {
     // Model Select change
     this.modelSelect.addEventListener('change', () => this.saveSettings());
 
-    // TTS Engine Select change
-    this.ttsEngineSelect.addEventListener('change', () => {
-      this.updateTTSBadge();
-      this.saveSettings();
-    });
+    // TTS Engine Select (Topbar Quick Dropdown)
+    if (this.ttsEngineSelectTop) {
+      this.ttsEngineSelectTop.addEventListener('change', (e) => {
+        if (this.ttsEngineSelect) this.ttsEngineSelect.value = e.target.value;
+        if (this.scriptEngineSelect) this.scriptEngineSelect.value = e.target.value;
+        this.updateTTSBadge();
+        this.saveSettings();
+      });
+    }
+
+    // TTS Engine Select (Settings Sheet Dropdown)
+    if (this.ttsEngineSelect) {
+      this.ttsEngineSelect.addEventListener('change', () => {
+        if (this.ttsEngineSelectTop) this.ttsEngineSelectTop.value = this.ttsEngineSelect.value;
+        if (this.scriptEngineSelect) this.scriptEngineSelect.value = this.ttsEngineSelect.value;
+        this.updateTTSBadge();
+        this.saveSettings();
+      });
+    }
+
+    // Script Reader TTS Engine Select
+    if (this.scriptEngineSelect) {
+      this.scriptEngineSelect.addEventListener('change', () => {
+        if (this.ttsEngineSelect) this.ttsEngineSelect.value = this.scriptEngineSelect.value;
+        if (this.ttsEngineSelectTop) this.ttsEngineSelectTop.value = this.scriptEngineSelect.value;
+        this.updateTTSBadge();
+        this.saveSettings();
+      });
+    }
 
     // Quick Action Chips
     document.querySelectorAll('.quick-chips-bar .chip-btn').forEach(chip => {
@@ -694,14 +721,29 @@ class BukiMobileClient {
   }
 
   updateTTSBadge() {
-    const engine = this.ttsEngineSelect.value;
+    const engine = this.ttsEngineSelect ? this.ttsEngineSelect.value : (this.ttsEngineSelectTop ? this.ttsEngineSelectTop.value : 'index_tts_2');
+    
+    // Sync topbar select and settings sheet select
+    if (this.ttsEngineSelectTop && this.ttsEngineSelectTop.value !== engine) {
+      this.ttsEngineSelectTop.value = engine;
+    }
+    if (this.ttsEngineSelect && this.ttsEngineSelect.value !== engine) {
+      this.ttsEngineSelect.value = engine;
+    }
+    if (this.scriptEngineSelect && this.scriptEngineSelect.value !== engine) {
+      this.scriptEngineSelect.value = engine;
+    }
+
     if (!this.voiceEnabled) {
       this.currentEngineBadge.textContent = '🔇 MUTE';
       this.ttsStatusDetail.innerHTML = '현재 상태: <strong>음성 출력 꺼짐</strong>';
       return;
     }
 
-    if (engine === 'gpt_sovits') {
+    if (engine === 'index_tts_2' || engine === 'index_tts') {
+      this.currentEngineBadge.textContent = '⚡ IndexTTS';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>IndexTTS-2 제로샷 + 8D감정/길이제어 모드 (한국어 지원)</strong> (포트 9884)';
+    } else if (engine === 'gpt_sovits') {
       this.currentEngineBadge.textContent = '🎙️ SoVITS';
       this.ttsStatusDetail.innerHTML = '현재 상태: <strong>GPT-SoVITS 3초 제로샷 모드</strong> (포트 9880)';
     } else if (engine === 'chatterbox') {
@@ -709,7 +751,7 @@ class BukiMobileClient {
       this.ttsStatusDetail.innerHTML = '현재 상태: <strong>Chatterbox 0.5B 감정/태그 제어 모드</strong> (포트 9882)';
     } else if (engine === 'auto') {
       this.currentEngineBadge.textContent = '⚡ AUTO';
-      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>스마트 자동 폴백 (SoVITS ➔ Chatterbox ➔ Edge)</strong>';
+      this.ttsStatusDetail.innerHTML = '현재 상태: <strong>스마트 자동 폴백 (IndexTTS ➔ SoVITS ➔ Edge)</strong>';
     } else {
       this.currentEngineBadge.textContent = '🔊 Edge';
       this.ttsStatusDetail.innerHTML = '현재 상태: <strong>Edge-TTS 초고속 모드</strong>';
@@ -741,14 +783,15 @@ class BukiMobileClient {
 
   saveSettings() {
     try {
+      const activeEngine = this.ttsEngineSelect ? this.ttsEngineSelect.value : (this.ttsEngineSelectTop ? this.ttsEngineSelectTop.value : 'index_tts_2');
       const settings = {
-        persona: this.personaSelect ? this.personaSelect.value : 'mesugaki',
-        model: this.modelSelect ? this.modelSelect.value : 'z-ai/glm-5.3-flash',
-        ttsEngine: this.ttsEngineSelect ? this.ttsEngineSelect.value : 'gpt_sovits',
+        persona: this.personaSelect ? this.personaSelect.value : 'shibuki',
+        model: this.modelSelect ? this.modelSelect.value : 'gemini-3.6-flash',
+        ttsEngine: activeEngine,
         voiceEnabled: this.voiceEnabled,
         actingEmotion: this.actingEmotion,
-        scriptPersona: this.scriptPersonaSelect ? this.scriptPersonaSelect.value : 'mesugaki',
-        scriptTtsEngine: this.scriptTtsEngineSelect ? this.scriptTtsEngineSelect.value : 'gpt_sovits'
+        scriptPersona: this.scriptPersonaSelect ? this.scriptPersonaSelect.value : 'shibuki',
+        scriptTtsEngine: this.scriptEngineSelect ? this.scriptEngineSelect.value : activeEngine
       };
       localStorage.setItem('buki_user_settings', JSON.stringify(settings));
     } catch (e) {
@@ -778,8 +821,10 @@ class BukiMobileClient {
         }
       }
 
-      if (s.ttsEngine && this.ttsEngineSelect) {
-        this.ttsEngineSelect.value = s.ttsEngine;
+      if (s.ttsEngine) {
+        if (this.ttsEngineSelect) this.ttsEngineSelect.value = s.ttsEngine;
+        if (this.ttsEngineSelectTop) this.ttsEngineSelectTop.value = s.ttsEngine;
+        if (this.scriptEngineSelect) this.scriptEngineSelect.value = s.ttsEngine;
         this.updateTTSBadge();
       }
 
@@ -805,8 +850,8 @@ class BukiMobileClient {
         this.scriptPersonaSelect.value = s.scriptPersona;
       }
 
-      if (s.scriptTtsEngine && this.scriptTtsEngineSelect) {
-        this.scriptTtsEngineSelect.value = s.scriptTtsEngine;
+      if (s.scriptTtsEngine && this.scriptEngineSelect) {
+        this.scriptEngineSelect.value = s.scriptTtsEngine;
       }
     } catch (e) {
       console.warn('Could not load saved settings:', e);
@@ -902,10 +947,33 @@ class BukiMobileClient {
           this.modelSelect.appendChild(grp);
         }
 
+        // 4. Populate Available TTS Engines dynamically
+        if (data.available_tts_engines && data.available_tts_engines.length > 0) {
+          const engines = data.available_tts_engines;
+          if (this.ttsEngineSelect) {
+            this.ttsEngineSelect.innerHTML = engines.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+          }
+          if (this.ttsEngineSelectTop) {
+            const shortNames = {
+              index_tts_2: '⚡ IndexTTS-2',
+              gpt_sovits: '🎙️ SoVITS',
+              chatterbox: '🎭 Chatterbox',
+              auto: '⚡ AUTO',
+              edge_tts: '🔊 Edge-TTS'
+            };
+            this.ttsEngineSelectTop.innerHTML = engines.map(e => `<option value="${e.id}">${shortNames[e.id] || e.id}</option>`).join('');
+          }
+          if (this.scriptEngineSelect) {
+            this.scriptEngineSelect.innerHTML = engines.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+          }
+        }
+
         // Restore cached user settings
         this.loadSavedSettings();
 
-        if (data.gpt_sovits_online) {
+        if (data.index_tts_online) {
+          this.ttsStatusDetail.innerHTML = '현재 상태: 🟢 <strong>IndexTTS-2 온라인 연결됨</strong> (포트 9884)';
+        } else if (data.gpt_sovits_online) {
           this.ttsStatusDetail.innerHTML = '현재 상태: 🟢 <strong>GPT-SoVITS 온라인 연결됨</strong> (포트 9880)';
         }
       }

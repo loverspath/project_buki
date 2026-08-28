@@ -1,17 +1,18 @@
 # 🔮 Project BUKI (`project_buki`)
 
 > **Interactive AI Companion & Virtual Avatar Web Engine**  
-> *LLM Streaming Chat × Multi-TTS Hybrid Engine (GPT-SoVITS / Chatterbox / Edge-TTS) × 10 Acting Emotion Styles × Script Reader*
+> *LLM Streaming Chat × Multi-TTS Quad-Engine (IndexTTS-2 / GPT-SoVITS / Chatterbox / Edge-TTS) × 10 Acting Emotion Styles × Script Reader × VTuber Voice Extractor*
 
 ---
 
 ## 🌟 핵심 기능 (Key Features)
 
 1. **🤖 Multi-LLM 하이브리드 인텔리전스 (Gemini / OpenRouter / NVIDIA / Ollama)**:
-   * **Google Gemini 2.0 Flash**: 차세대 무료 초고속 LLM 엔진 공식 탑재 (지문 분리 & 서브컬처 페르소나 연기력 극대화)
+   * **Google Gemini 2.0/3.6 Flash**: 차세대 무료 초고속 LLM 엔진 공식 탑재 (지문 분리 & 서브컬처 페르소나 연기력 극대화)
    * **OpenRouter Free & NVIDIA Cloud**: 옥스알파(GLM-5.3), MiniMax M3, Nemotron 등 다양한 무료 클라우드 모델 지원
    * **로컬 GPU (Ollama)**: 로컬 무검열 모델 지원
-2. **🎙️ Multi-TTS 하이브리드 음성 엔진 (Tri-Engine Architecture)**:
+2. **🎙️ Multi-TTS 하이브리드 음성 엔진 (Quad-Engine Architecture)**:
+   * **IndexTTS-2 (포트 9884)**: 한국어/일본어/영어/중국어 네이티브 제로샷 복제 + 8차원 감정 벡터 블렌딩 + 발화 시간(Duration) 정밀 제어
    * **GPT-SoVITS (포트 9880)**: 3초 제로샷(Zero-shot) 캐릭터 음성 복제 및 감정 뱅크 라우팅
    * **Chatterbox 0.5B (포트 9882)**: 의성어/호흡 태그(`[laugh]`, `[sigh]`, `[whisper]`) 및 감정 과장도(Exaggeration) 제어
    * **Edge-TTS**: 초고속 무중단 자동 폴백(Auto-Fallback) 지원
@@ -27,11 +28,12 @@
 4. **📖 대본 낭독기 (Script Reader)**:
    * 소설/대본 텍스트를 대사(`"큰따옴표"`)와 지문으로 자동 파싱
    * 지문 문맥에 따라 대사별 감정 연기 톤 자동 전환 또는 상단 필터를 통한 전 대사 일괄 강제 낭독
-   * 원클릭 감정 프리셋(신음, 공포, 체념 등) 지원
-5. **⚙️ JSON 기반 설정 관리 & 핫 리로드 (ConfigManager)**:
+5. **🎬 VTuber 고음질 보이스 추출 5단계 자동화 파이프라인 (`extract_shibuki_voice.py`)**:
+   * 유튜브 아카이브/로컬 영상에서 저스트채팅(잡담) 구간 자동 탐색 ➔ DSP 배경음 제거 ➔ VAD 3~8초 슬라이싱 ➔ 32kHz/-20LUFS 표준화 ➔ 전사 및 감정 레지스트리 자동 갱신
+6. **⚙️ JSON 기반 설정 관리 & 핫 리로드 (ConfigManager)**:
    * 모델 카탈로그, API URL, 감정 프롬프트, 키워드 룰셋을 `config/settings.json`으로 완전 분리
    * 코드 재시작 없이 `POST /api/config/reload`를 통한 런타임 핫 리로드 지원
-6. **📱 모바일 / Tailscale 원격 최적화**:
+7. **📱 모바일 / Tailscale 원격 최적화**:
    * Galaxy Z Fold 및 모바일 브라우저에 최적화된 Glassmorphism UI
    * 모바일 Web Audio 자동 잠금 해제(AudioContext Unlocker) 및 캐시 버스팅
 

@@ -12,6 +12,52 @@ GPT_SOVITS_URL = os.getenv("GPT_SOVITS_URL", "http://127.0.0.1:9880")
 _STATUS_CACHE = {"online": False, "timestamp": 0.0}
 CACHE_TTL = 30.0 # Cache status for 30 seconds to prevent healthcheck collisions during GPU compute
 
+_CURRENT_PERSONA = None
+_MODEL_CONFIGS = {
+    "shibuki": {
+        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/shibuki_e8_s104.pth",
+        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/shibuki-e15.ckpt"
+    },
+    "mutsuki": {
+        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
+        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    },
+    "mesugaki": {
+        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
+        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    }
+}
+
+async def ensure_persona_weights(persona_id: str = "shibuki") -> bool:
+    """Dynamically loads fine-tuned or base GPT/SoVITS weights for the active persona."""
+    global _CURRENT_PERSONA
+    target_key = persona_id if persona_id in _MODEL_CONFIGS else "shibuki"
+    if _CURRENT_PERSONA == target_key:
+        return True
+
+    cfg = _MODEL_CONFIGS.get(target_key)
+    if not cfg:
+        return True
+
+    sovits_file = Path(cfg["sovits"])
+    gpt_file = Path(cfg["gpt"])
+
+    if not sovits_file.exists() or not gpt_file.exists():
+        print(f"[GPT-SoVITS] Custom weights for '{target_key}' not found, keeping active models.")
+        return True
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            res_s = await client.get(f"{GPT_SOVITS_URL}/set_sovits_weights", params={"weights_path": str(sovits_file)})
+            res_g = await client.get(f"{GPT_SOVITS_URL}/set_gpt_weights", params={"weights_path": str(gpt_file)})
+            if res_s.status_code == 200 and res_g.status_code == 200:
+                _CURRENT_PERSONA = target_key
+                print(f"[GPT-SoVITS] Successfully loaded models for persona '{target_key}'")
+                return True
+    except Exception as e:
+        print(f"[GPT-SoVITS] Failed to switch models to '{target_key}': {e}")
+    return False
+
 async def is_gpt_sovits_alive(force_refresh: bool = False) -> bool:
     """Checks if the local GPT-SoVITS API server is active with generous timeout."""
     global _STATUS_CACHE
@@ -39,15 +85,18 @@ async def synthesize_gpt_sovits_base64(
     prompt_lang: str = "ko",
     target_lang: str = "ko",
     speed: float = 1.0,
+    persona_id: str = "shibuki",
     max_retries: int = 2
 ) -> Optional[str]:
     """
     Calls local GPT-SoVITS api_v2 with zero-shot reference audio and prompt text.
-    Waits patiently up to 120s for GPU computation without dropping to fallback.
+    Automatically ensures appropriate fine-tuned weights are active.
     """
     clean_text = text.strip()
     if not clean_text:
         return None
+
+    await ensure_persona_weights(persona_id)
 
     if not os.path.isabs(ref_audio_path):
         base_dir = Path(__file__).parent.parent.parent
@@ -62,9 +111,9 @@ async def synthesize_gpt_sovits_base64(
         "ref_audio_path": ref_audio_path,
         "prompt_text": prompt_text,
         "prompt_lang": prompt_lang,
-        "top_k": 15,
-        "top_p": 1.0,
-        "temperature": 1.0,
+        "top_k": 5,
+        "top_p": 0.85,
+        "temperature": 0.85,
         "speed_factor": speed,
         "text_split_method": "cut5",
         "batch_size": 1,

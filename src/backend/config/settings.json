@@ -3,7 +3,10 @@
     "ollama_base_url": "http://127.0.0.1:11434",
     "nvidia_base_url": "https://integrate.api.nvidia.com/v1",
     "gemini_base_url": "https://generativelanguage.googleapis.com/v1beta",
-    "openrouter_base_url": "https://openrouter.ai/api/v1"
+    "openrouter_base_url": "https://openrouter.ai/api/v1",
+    "gpt_sovits_base_url": "http://127.0.0.1:9880",
+    "chatterbox_base_url": "http://127.0.0.1:9882",
+    "index_tts_base_url": "http://127.0.0.1:9884"
   },
   "models": {
     "gemini_cloud": [
@@ -28,15 +31,19 @@
     ]
   },
   "defaults": {
-    "persona": "mesugaki",
+    "persona": "shibuki",
     "model": "gemini-3.6-flash",
-    "tts_engine": "gpt_sovits",
+    "tts_engine": "index_tts_2",
     "acting_emotion": "auto"
   },
   "available_tts_engines": [
     {
+      "id": "index_tts_2",
+      "name": "⚡ IndexTTS-2 (제로샷 + 8D감정/길이제어 - 한국어)"
+    },
+    {
       "id": "gpt_sovits",
-      "name": "🎙️ GPT-SoVITS (3초 제로샷 - 기본)"
+      "name": "🎙️ GPT-SoVITS (3초 제로샷)"
     },
     {
       "id": "chatterbox",
@@ -44,7 +51,7 @@
     },
     {
       "id": "auto",
-      "name": "⚡ 자동 (SoVITS ➔ Chatterbox ➔ Edge)"
+      "name": "⚡ 자동 (IndexTTS ➔ SoVITS ➔ Edge)"
     },
     {
       "id": "edge_tts",

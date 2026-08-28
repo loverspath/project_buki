@@ -56,5 +56,33 @@
     "default_prompt_text": "",
     "prompt_lang": "ko",
     "target_lang": "ko"
+  },
+  "shibuki": {
+    "default_ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_001.wav",
+    "default_prompt_text": "아니, 너무 비닐 소리야. 뭐가 좋은 거야? 밤",
+    "prompt_lang": "ko",
+    "target_lang": "ko",
+    "emotion_banks": {
+      "tease": {
+        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_001.wav",
+        "prompt_text": "아니, 너무 비닐 소리야. 뭐가 좋은 거야? 밤",
+        "lang": "ko"
+      },
+      "flustered": {
+        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_003.wav",
+        "prompt_text": "혹시 모르니까 벌레가 나올 수도 있으니까 밤을 그 뭐지",
+        "lang": "ko"
+      },
+      "neutral": {
+        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_005.wav",
+        "prompt_text": "컴퓨터 책상에서 뭐 먹었는데 비닐장갑을 그때 두 장을 뽑아와서 한",
+        "lang": "ko"
+      },
+      "smug": {
+        "ref_wav": "C:/Users/rerun/opendcmart/projects/project_buki/src/assets/voice_samples/shibuki/shibuki_sample_014.wav",
+        "prompt_text": "대박 대박 대박 구했습니다! 하하!",
+        "lang": "ko"
+      }
+    }
   }
 }

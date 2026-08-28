@@ -19,4 +19,7 @@
 | **TSK-012** | Feature | 대본 낭독기 (Script Reader) 2-Way 감정 파싱 & 일괄 낭독 엔진 탑재 | All | ✅ 완료 | P0 |
 | **TSK-013** | LLM | Google Gemini 2.0 Flash 차세대 공식 API 연동 & 프론트엔드 모델 선택기 | Backend | ✅ 완료 | P0 |
 | **TSK-014** | Refactor | `app.py` 갓오브젝트 해체 ➔ `settings.json` & `ConfigManager` 싱글톤 분리 및 핫 리로드 | Backend | ✅ 완료 | P0 |
+| **TSK-015** | Audio | Tenko Shibuki & VTuber 방송 아카이브 제로샷 보이스 추출 5단계 자동화 파이프라인 | Audio | ✅ 완료 | P0 |
+| **TSK-016** | Audio | IndexTTS-2 (한국어 지원, 8D 감정 벡터, 정밀 시간/길이 제어 제로샷) 엔진 통합 | Backend | ✅ 완료 | P0 |
+| **TSK-017** | Audio | Tenko Shibuki 전용 GPT-SoVITS 5단계 파인튜닝 완주 및 동적 가중치 스위칭 엔진 구축 | Audio | ✅ 완료 | P0 |
 | **TSK-008** | Avatar | Three.js 3D VRM 웹 렌더러 및 립싱크 모핑 탑재 | Frontend | ⏳ 대기 (Phase 3) | P1 |

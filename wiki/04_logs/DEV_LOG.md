@@ -2,6 +2,45 @@
 
 ---
 
+### 📅 2026-08-28 (Sprint 6: 텐코 시부키 GPT-SoVITS 파인튜닝 파이프라인 완주 & 모바일 SSH 영속 워치독 구축)
+* **작업 내용**:
+  1. **텐코 시부키 GPT-SoVITS 5단계 자동 파인튜닝 파이프라인 완주 (`scripts/train_shibuki_gpt_sovits.py`)**:
+     - RTX 3080 Ti GPU 기반 V2 Foundation 사전학습 모델(`s2G2333k.pth`, `s2D2333k.pth`, `s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt`) 정밀 파인튜닝.
+     - Stage 1A (Text Phonemization, 12.5s) ➔ Stage 1B (HuBERT SSL, 13.6s) ➔ Stage 1C (Semantic Tokenizer, 8.1s) ➔ Stage 2A (SoVITS Decoder 8 Epochs, 218.8s) ➔ Stage 2B (GPT AR Model 15 Epochs, 121.1s) 전 과정 완주.
+     - 최종 가중치 체크포인트 생성 완료:
+       * `SoVITS_weights_v2/shibuki_e8_s104.pth` (85.0 MB)
+       * `GPT_weights_v2/shibuki-e15.ckpt` (155.3 MB)
+  2. **페르소나별 동적 가중치 스위칭 엔진 탑재 (`src/backend/tts/gpt_sovits_service.py`)**:
+     - `ensure_persona_weights()`: `shibuki` 요청 시 파인튜닝 전용 가중치(`shibuki_e8_s104.pth` + `shibuki-e15.ckpt`)를 자동 로드하고, `mutsuki` / `mesugaki` 요청 시 베이스 사전학습 가중치로 무중단 자동 전환.
+     - `FastAPI /api/tts` 엔드포인트 연동 테스트 전수 통과 (시부키 파인튜닝 음성 508KB, 무츠키 제로샷 음성 399KB 실시간 합성 검증).
+  3. **모바일 SSH 및 세션 이탈 방지 워치독 개선 (`scripts/run_agy_watchdog.ps1`)**:
+     - 세션 비정상 종료/SSH 끊김 발생 시 `agy -c` (`--continue`) 자동 주입으로 진행 중이던 대화 세션 무손실 복구 지원.
+  4. **구글 드라이브 음성 데이터 백업 (`rclone`)**:
+     - 10개 고음질 음성 샘플 및 데이터셋 명세(`shibuki.list`, `voice_manifest.json`)를 `gdrive:buki_voice_samples/shibuki/`에 안전하게 동기화 완료.
+
+---
+
+### 📅 2026-08-28 (Sprint 5: IndexTTS-2 한국어 제로샷 엔진 통합 & 텐코 시부키 유튜브 실전 음성 추출 완비)
+* **작업 내용**:
+  1. **IndexTTS-2 (한국어 지원, 8D 감정 벡터, 발화 길이 제어) 제로샷 엔진 탑재**:
+     - `src/backend/tts/index_tts_service.py`: IndexTTS-2 REST API 어댑터 구축.
+       * 8차원 감정 벡터 블렌딩 (`[happy, angry, sad, afraid, disgusted, melancholic, surprised, calm]`) 및 자연어 Soft Instruction 매핑.
+       * 비디오 더빙 및 3D 아바타 립싱크 타이밍 정밀 동기화를 위한 `duration_sec` 발화 시간 제어 지원.
+       * 한국어(`ko`), 일본어(`ja`), 중국어(`zh`), 영어(`en`) 네이티브 멀티링구얼 지원.
+     - `src/backend/tts/tts_manager.py`: `synthesize_smart_speech()`에 `index_tts_2` 라우터 및 자동 폴백(`IndexTTS ➔ SoVITS ➔ Edge`) 연결.
+     - `src/backend/config/settings.json` & `core/config_manager.py`: `index_tts_base_url` (기본 포트 9884) 및 `available_tts_engines` 등록.
+     - `src/frontend/app.js`: UI 상태 배지(`⚡ IndexTTS`) 및 실시간 엔진 전환 지원.
+  2. **텐코 시부키(Tenko Shibuki) 유튜브 실제 아카이브(bWs7jriDcX8) 5단계 음성 추출 완료**:
+     - `extract_shibuki_voice.py`: 4시간 11분 분량의 저스트채팅 아카이브에서 안드로이드 클라이언트 고속 스트리밍으로 10분 잡담 구간(05m~15m)을 7초 만에 다운로드.
+     - FFmpeg 5중 DSP 필터 체인으로 배경음 및 노이즈 제거 후, Silero VAD 기반 3.0~8.0초 단위 정밀 10개 음성 슬라이스 추출.
+     - 32,000Hz 16-bit PCM Mono WAV 및 EBU R128 (-20.0 LUFS) 표준화.
+     - Gemini 멀티모달 오디오 분석을 통해 실제 한국어 발화 전사 및 `tease`, `flustered`, `neutral` 감정 뱅크 자동 분류.
+     - `src/assets/voice_samples/sample_registry.json`에 `shibuki` 한국어 제로샷 보이스 프로필 정식 등록 완료.
+  3. **전체 회귀 검증 테스트 통과**:
+     - `scripts/test_config_refactor.py`: 5대 테스트 스위트(ConfigManager, 모델 카탈로그, 8D 감정 프리셋, 문맥 감정 추론, app.py 및 Shibuki 페르소나) 100% 검증 완료.
+
+---
+
 ### 📅 2026-08-27 (Sprint 4: Google Gemini 2.0 Flash 공식 탑재 & app.py 설정/메인 JSON 분리 리팩토링)
 * **작업 내용**:
   1. **Google Gemini 2.0 Flash / 1.5 Flash 공식 API 연동**:

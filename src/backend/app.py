@@ -25,6 +25,7 @@ from core.persona import PERSONAS
 from tts.tts_manager import synthesize_smart_speech
 from tts.gpt_sovits_service import is_gpt_sovits_alive, GPT_SOVITS_URL
 from tts.chatterbox_service import is_chatterbox_alive
+from tts.index_tts_service import is_index_tts_alive, INDEX_TTS_URL
 
 app = FastAPI(title="Project BUKI - Local & Cloud LLM + TTS Companion Engine")
 
@@ -49,37 +50,40 @@ class ChatMessage(BaseModel):
 
 class ChatStreamRequest(BaseModel):
     message: str
-    persona_id: Optional[str] = "mesugaki"
+    persona_id: Optional[str] = "shibuki"
     model: Optional[str] = None
     history: Optional[List[ChatMessage]] = []
     voice_enabled: Optional[bool] = True
-    tts_engine: Optional[str] = "gpt_sovits"
+    tts_engine: Optional[str] = "index_tts_2"
     custom_system_prompt: Optional[str] = None
     nsfw_mode: Optional[bool] = False
     acting_emotion: Optional[str] = "auto"
+    target_duration_sec: Optional[float] = None
 
 
 class DirectTTSRequest(BaseModel):
     text: str
-    persona_id: Optional[str] = "mesugaki"
-    tts_engine: Optional[str] = "gpt_sovits"
+    persona_id: Optional[str] = "shibuki"
+    tts_engine: Optional[str] = "index_tts_2"
     nsfw_mode: Optional[bool] = False
     acting_emotion: Optional[str] = "auto"
+    target_duration_sec: Optional[float] = None
 
 
 class ScriptParseRequest(BaseModel):
     script_text: str
-    persona_id: Optional[str] = "mesugaki"
+    persona_id: Optional[str] = "shibuki"
 
 
 class ScriptSegmentTTSRequest(BaseModel):
     dialogue: str
-    persona_id: Optional[str] = "mesugaki"
+    persona_id: Optional[str] = "shibuki"
     inferred_emotion: Optional[str] = "default"
     context_narration: Optional[str] = ""
-    tts_engine: Optional[str] = "gpt_sovits"
+    tts_engine: Optional[str] = "index_tts_2"
     nsfw_mode: Optional[bool] = False
     acting_emotion: Optional[str] = "auto"
+    target_duration_sec: Optional[float] = None
 
 
 # --- HELPER FUNCTIONS ---
@@ -183,6 +187,7 @@ async def get_system_info():
     flat_models = config.get_flat_models(local_models)
     gpt_sovits_status = await is_gpt_sovits_alive()
     chatterbox_status = await is_chatterbox_alive()
+    index_tts_status = await is_index_tts_alive()
 
     return {
         "personas": list(PERSONAS.values()),
@@ -194,6 +199,8 @@ async def get_system_info():
         "gpt_sovits_url": GPT_SOVITS_URL,
         "gpt_sovits_online": gpt_sovits_status,
         "chatterbox_online": chatterbox_status,
+        "index_tts_url": INDEX_TTS_URL,
+        "index_tts_online": index_tts_status,
         "available_tts_engines": config.available_tts_engines
     }
 
@@ -222,7 +229,8 @@ async def direct_tts(req: DirectTTSRequest):
         persona_config=persona,
         detected_actions=actions,
         preferred_engine=req.tts_engine or config.default_tts_engine,
-        override_emotion=override_emo
+        override_emotion=override_emo,
+        target_duration_sec=req.target_duration_sec
     )
     if not audio_base64:
         raise HTTPException(status_code=500, detail="Failed to synthesize speech")
@@ -247,7 +255,8 @@ async def tts_script_segment(req: ScriptSegmentTTSRequest):
         persona_config=persona,
         detected_actions=[req.context_narration] if req.context_narration else [],
         preferred_engine=req.tts_engine or config.default_tts_engine,
-        override_emotion=override_emo
+        override_emotion=override_emo,
+        target_duration_sec=req.target_duration_sec
     )
     if not audio_base64:
         raise HTTPException(status_code=500, detail="Failed to synthesize segment speech")

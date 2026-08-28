@@ -19,6 +19,17 @@
       </div>
 
       <div class="topbar-right">
+        <!-- TTS Engine Selector Pill in Topbar -->
+        <div class="tts-pill-wrapper" title="🎙️ TTS 음성 엔진 선택">
+          <select id="ttsEngineSelectTop" class="tts-pill-select">
+            <option value="index_tts_2" selected>⚡ IndexTTS-2</option>
+            <option value="gpt_sovits">🎙️ SoVITS</option>
+            <option value="chatterbox">🎭 Chatterbox</option>
+            <option value="auto">⚡ AUTO</option>
+            <option value="edge_tts">🔊 Edge-TTS</option>
+          </select>
+        </div>
+
         <!-- Acting Emotion Style Selector Pill -->
         <div class="emotion-pill-wrapper" title="🎭 연기 감정 / 보이스 톤 선택">
           <select id="emotionSelectTop" class="emotion-pill-select">
@@ -173,7 +184,8 @@
             <div class="script-opt-item">
               <label>🎭 낭독 캐릭터</label>
               <select id="scriptPersonaSelect" class="sheet-select">
-                <option value="mesugaki" selected>😏 메스가키 (한국어 네이티브)</option>
+                <option value="shibuki" selected>🦊 텐코 시부키 (한국어 버튜버)</option>
+                <option value="mesugaki">😏 메스가키 (한국어 네이티브)</option>
                 <option value="mutsuki">💣 무츠키 (원작 일어 톤)</option>
                 <option value="sayaka">✨ 사야카 (발랄한 톤)</option>
                 <option value="ruri">🧐 루리 (이성적 분석 톤)</option>
@@ -183,7 +195,8 @@
             <div class="script-opt-item">
               <label>🎙️ TTS 엔진</label>
               <select id="scriptEngineSelect" class="sheet-select">
-                <option value="gpt_sovits" selected>🎙️ GPT-SoVITS (제로샷 감정 연기)</option>
+                <option value="index_tts_2" selected>⚡ IndexTTS-2 (제로샷 + 8D감정/길이제어)</option>
+                <option value="gpt_sovits">🎙️ GPT-SoVITS (3초 제로샷)</option>
                 <option value="chatterbox">🎭 Chatterbox (0.5B 감정/태그 제어)</option>
                 <option value="edge_tts">🔊 Edge-TTS (초고속)</option>
               </select>
@@ -244,14 +257,16 @@
         <!-- Persona Setting -->
         <div class="sheet-group">
           <label class="sheet-label">🎭 페르소나 선택</label>
-          <div class="segmented-grid" id="personaGrid" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
-            <button class="segment-btn active" data-persona="mesugaki">😏 메스가키</button>
+          <div class="segmented-grid" id="personaGrid" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr;">
+            <button class="segment-btn active" data-persona="shibuki">🦊 시부키</button>
+            <button class="segment-btn" data-persona="mesugaki">😏 메스가키</button>
             <button class="segment-btn" data-persona="mutsuki">💣 무츠키</button>
             <button class="segment-btn" data-persona="sayaka">✨ 사야카</button>
             <button class="segment-btn" data-persona="ruri">🧐 루리</button>
           </div>
           <select id="personaSelect" style="display:none;">
-            <option value="mesugaki" selected>메스가키</option>
+            <option value="shibuki" selected>시부키</option>
+            <option value="mesugaki">메스가키</option>
             <option value="mutsuki">무츠키</option>
             <option value="sayaka">사야카</option>
             <option value="ruri">루리</option>
@@ -260,10 +275,34 @@
 
         <!-- LLM Model Setting -->
         <div class="sheet-group">
-          <label class="sheet-label">🤖 로컬 LLM 모델</label>
+          <label class="sheet-label">🤖 LLM 모델 (클라우드 & 로컬)</label>
           <select id="modelSelect" class="sheet-select">
-            <option value="gemma-mesugaki:latest" selected>gemma-mesugaki:latest (권장)</option>
-            <option value="huihui_ai/qwen2.5-coder-abliterate:14b">qwen2.5-coder:14b</option>
+            <optgroup label="✨ 구글 제미나이 무료 API (Google Gemini)">
+              <option value="gemini-3.6-flash" selected>✨ Google Gemini 3.6 Flash (⭐ 1순위 추천 - 초고속 플래시)</option>
+              <option value="gemini-3.7-flash">🧠 Google Gemini 3.7 Flash (추론 강화 차세대 모델)</option>
+              <option value="gemini-flash-latest">🌟 Google Gemini Flash Latest (최신 플래시)</option>
+              <option value="gemini-flash-lite-latest">⚡ Google Gemini Flash Lite (초경량/초고속)</option>
+            </optgroup>
+            <optgroup label="🌐 오픈라우터 무료 AI (OpenRouter Free)">
+              <option value="openrouter/free">🚀 OpenRouter Free (⭐ 스마트 고가용성 무료 라우터)</option>
+              <option value="minimax/minimax-m3:free">⭐ MiniMax M3 (1M 초대용량 컨텍스트 무료)</option>
+              <option value="deepseek/deepseek-chat">🧠 DeepSeek V3 (초고성능 범용 챗)</option>
+              <option value="nvidia/nemotron-3-super-120b-a12b:free">⚡ NVIDIA Nemotron 120B (무료)</option>
+              <option value="nvidia/nemotron-3-ultra-550b-a55b:free">👑 Nemotron 3 Ultra 550B (무료)</option>
+              <option value="liquid/lfm-2.5-2.6b:free">💧 Liquid LFM 2.5 (초고속 추론 무료)</option>
+              <option value="thinkingmachines/inkling:free">🧠 Thinking Machines Inkling (975B 무료)</option>
+              <option value="poolside/laguna-s-2.1:free">💻 Poolside Laguna S 2.1 (코딩 118B)</option>
+              <option value="z-ai/glm-5.2:free">⚡ Z.ai GLM 5.2 (256k 추론 무료)</option>
+            </optgroup>
+            <optgroup label="🚀 NVIDIA 클라우드 API (엔비디아)">
+              <option value="nvidia/nemotron-3-super-120b-a12b">⚡ Nemotron 3 Super (120B 클라우드)</option>
+            </optgroup>
+            <optgroup label="💻 로컬 GPU 모델 (Ollama)">
+              <option value="huihui_ai/qwen2.5-coder-abliterate:14b">💻 Qwen 2.5 14B 무검열 (로컬 추천)</option>
+              <option value="gemma4-uncensored:latest">🌸 Gemma 4 12B 무검열 (로컬)</option>
+              <option value="gemma-mesugaki:latest">😏 Gemma Mesugaki (로컬 전용)</option>
+              <option value="huihui_ai/qwen3.5-abliterated:9b">⚡ Qwen 3.5 9B 무검열 (로컬 초고속)</option>
+            </optgroup>
           </select>
         </div>
 
@@ -271,13 +310,14 @@
         <div class="sheet-group">
           <label class="sheet-label">🎙️ 음성 합성 (TTS) 엔진</label>
           <select id="ttsEngineSelect" class="sheet-select">
-            <option value="gpt_sovits" selected>🎙️ GPT-SoVITS (3초 제로샷 캐릭터 보이스)</option>
+            <option value="index_tts_2" selected>⚡ IndexTTS-2 (제로샷 + 8D감정/길이제어 - 한국어)</option>
+            <option value="gpt_sovits">🎙️ GPT-SoVITS (3초 제로샷 캐릭터 보이스)</option>
             <option value="chatterbox">🎭 Chatterbox (0.5B 감정/태그 제어)</option>
-            <option value="auto">⚡ 자동 폴백 (SoVITS ➔ Chatterbox ➔ Edge)</option>
+            <option value="auto">⚡ 자동 폴백 (IndexTTS ➔ SoVITS ➔ Edge)</option>
             <option value="edge_tts">🔊 Edge-TTS (초고속 기본 음성)</option>
           </select>
           <div class="sheet-hint" id="ttsStatusDetail">
-            현재 상태: <strong>GPT-SoVITS 기본 모드</strong> (포트 9880)
+            현재 상태: <strong>IndexTTS-2 기본 모드</strong> (포트 9884)
           </div>
         </div>
 
@@ -311,6 +351,6 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260827_2155"></script>
+  <script src="/static/app.js?v=20260828_0925"></script>
 </body>
 </html>

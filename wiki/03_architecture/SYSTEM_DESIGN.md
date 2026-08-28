@@ -2,7 +2,7 @@
 
 ---
 
-## 🏛️ 1. 모듈 계층 및 Tri-Engine Multi-TTS 라우팅 아키텍처
+## 🏛️ 1. 모듈 계층 및 Multi-TTS 라우팅 아키텍처 (Quad-Engine)
 
 ```mermaid
 graph TD
@@ -17,13 +17,14 @@ graph TD
     end
 
     subgraph BackendServices["Backend Services"]
-        LLMService["Ollama Stream Service / Cloud LLM Router"]
+        LLMService["Ollama Stream Service / Cloud LLM Router (Gemini/Nemotron)"]
         Parser["Dialogue & Action Separation Engine"]
         ScriptParser["2-Way Script Segmentation Engine"]
         TTSManager["Smart Multi-TTS Router"]
-        GPTSoVITS["GPT-SoVITS Zero-Shot Engine (Port 9880)"]
-        Chatterbox["Chatterbox 0.5B Microservice (Port 9882)"]
-        EdgeTTS["Edge-TTS Engine (Fallback)"]
+        IndexTTS["⚡ IndexTTS-2 Engine (Port 9884, 한국어/8D감정/길이제어)"]
+        GPTSoVITS["🎙️ GPT-SoVITS Zero-Shot Engine (Port 9880)"]
+        Chatterbox["🎭 Chatterbox 0.5B Microservice (Port 9882)"]
+        EdgeTTS["🔊 Edge-TTS Engine (Fallback)"]
     end
 
     Client --> FrontendComponents
@@ -38,10 +39,12 @@ graph TD
     Parser -->|Clean Spoken Text| TTSManager
     ScriptParser -->|Segment Dialogue & Inferred Emo| TTSManager
 
+    TTSManager -->|Zero-shot 32kHz WAV + 8D Emo Vector + Duration| IndexTTS
     TTSManager -->|Zero-shot 32kHz WAV + Prosody| GPTSoVITS
     TTSManager -->|Tags & Exaggeration 0.95| Chatterbox
     TTSManager -->|High-speed Fallback| EdgeTTS
 
+    IndexTTS -.->|Base64 WAV| AudioEngine
     GPTSoVITS -.->|Base64 WAV| AudioEngine
     Chatterbox -.->|Base64 WAV| AudioEngine
     EdgeTTS -.->|Base64 MP3| AudioEngine
@@ -84,3 +87,10 @@ graph TD
 * **싱글톤 설정 관리자 (`src/backend/core/config_manager.py`)**:
   * `.env` 우선순위 자동 주입 및 모델 카테고리 필터링 제공.
   * `POST /api/config/reload`를 통해 서버 재시작 없이 런타임 핫 리로드 지원.
+
+---
+
+## 📚 5. 상세 아키텍처 매뉴얼 링크
+
+* [🎙️ YouTube 음원 채취, 분석 및 BGM 노이즈 제거 파이프라인 매뉴얼](file:///C:/Users/rerun/opendcmart/projects/project_buki/wiki/03_architecture/VOICE_EXTRACTION_AND_CLEANING_GUIDE.md)
+* [🧠 GPT-SoVITS v2 파인튜닝 & 듀얼 페르소나 서빙 매뉴얼](file:///C:/Users/rerun/opendcmart/projects/project_buki/wiki/03_architecture/GPT_SOVITS_FINETUNING_MANUAL.md)

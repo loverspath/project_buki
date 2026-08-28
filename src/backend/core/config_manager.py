@@ -89,6 +89,10 @@ class ConfigManager:
     def openrouter_api_key(self) -> str:
         return os.getenv("OPENROUTER_API_KEY", "")
 
+    @property
+    def index_tts_base_url(self) -> str:
+        return os.getenv("INDEX_TTS_URL", self.data.get("api_endpoints", {}).get("index_tts_base_url", "http://127.0.0.1:9884"))
+
     # --- MODEL CATALOGS ---
     @property
     def gemini_models(self) -> List[str]:

@@ -25,3 +25,6 @@ Thumbs.db
 .env.*
 test_*.py
 search_*.py
+*.part
+scratch_voice_extract/
+scratch_tts_output/
