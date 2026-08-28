@@ -15,7 +15,7 @@ CACHE_TTL = 30.0 # Cache status for 30 seconds to prevent healthcheck collisions
 _CURRENT_PERSONA = None
 _MODEL_CONFIGS = {
     "shibuki": {
-        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/shibuki_e12_s528.pth",
+        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/shibuki_e12_s636.pth",
         "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/shibuki-e20.ckpt"
     },
     "mutsuki": {
@@ -23,7 +23,7 @@ _MODEL_CONFIGS = {
         "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
     },
     "mesugaki": {
-        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/shibuki_e12_s528.pth",
+        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/shibuki_e12_s636.pth",
         "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/shibuki-e20.ckpt"
     }
 }
