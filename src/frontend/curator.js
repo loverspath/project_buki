@@ -116,14 +116,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const mins = Math.floor(totalSec / 60);
         const secs = Math.floor(totalSec % 60);
 
-        statTotal.textContent = ${total}개;
-        statIncluded.textContent = ${included}개 활성;
-        statDuration.textContent = ${mins}분 초;
+        statTotal.textContent = `${total}개`;
+        statIncluded.textContent = `${included}개 활성`;
+        statDuration.textContent = `${mins}분 ${secs}초`;
     }
 
     function syncFormStateToMemory() {
         samples.forEach(s => {
-            const card = document.getElementById(card-);
+            const card = document.getElementById(`card-${s.sample_id}`);
             if (card) {
                 const chk = card.querySelector('.chk-include');
                 const emo = card.querySelector('.emotion-select');
@@ -180,11 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sampleContainer.innerHTML = '';
         if (filtered.length === 0) {
-            sampleContainer.innerHTML = 
+            sampleContainer.innerHTML = `
                 <div class="loading-spinner">
                     <p>검색/필터 조건에 맞는 샘플이 없습니다.</p>
                 </div>
-            ;
+            `;
             return;
         }
 
@@ -196,45 +196,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createSampleCard(s) {
         const card = document.createElement('div');
-        card.className = sample-card ;
-        card.id = card-;
+        card.className = `sample-card ${s.is_included ? '' : 'excluded'}`;
+        card.id = `card-${s.sample_id}`;
 
         const trimStart = (s.trim_start !== undefined) ? s.trim_start : 0.0;
         const trimEnd = (s.trim_end !== undefined) ? s.trim_end : s.duration;
 
-        card.innerHTML = 
+        card.innerHTML = `
             <!-- Card Top Header -->
             <div class="card-header">
                 <div class="card-header-left">
                     <label class="custom-checkbox" title="학습 데이터셋 포함 여부">
-                        <input type="checkbox" class="chk-include" >
+                        <input type="checkbox" class="chk-include" ${s.is_included ? 'checked' : ''}>
                         <span>포함</span>
                     </label>
-                    <span class="file-badge"></span>
-                    <span class="dur-badge" id="dur-label-">s</span>
+                    <span class="file-badge">${s.filename}</span>
+                    <span class="dur-badge" id="dur-label-${s.sample_id}">${s.duration.toFixed(2)}s</span>
                 </div>
                 <select class="emotion-select select-box" title="감정/문맥 톤 지정">
-                    <option value="neutral" >평서문 / neutral</option>
-                    <option value="question" >의문문 / question</option>
-                    <option value="tease" >장난 / tease</option>
-                    <option value="smug" >도도 / smug</option>
-                    <option value="flustered" >당황 / flustered</option>
-                    <option value="angry" >화남 / angry</option>
+                    <option value="neutral" ${s.emotion === 'neutral' ? 'selected' : ''}>평서문 / neutral</option>
+                    <option value="question" ${s.emotion === 'question' ? 'selected' : ''}>의문문 / question</option>
+                    <option value="tease" ${s.emotion === 'tease' ? 'selected' : ''}>장난 / tease</option>
+                    <option value="smug" ${s.emotion === 'smug' ? 'selected' : ''}>도도 / smug</option>
+                    <option value="flustered" ${s.emotion === 'flustered' ? 'selected' : ''}>당황 / flustered</option>
+                    <option value="angry" ${s.emotion === 'angry' ? 'selected' : ''}>화남 / angry</option>
                 </select>
             </div>
 
             <!-- Built-in Audio Player -->
             <div class="card-player">
-                <button class="btn-play-card" id="btn-play-" title="재생 / 일시정지">
+                <button class="btn-play-card" id="btn-play-${s.sample_id}" title="재생 / 일시정지">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                 </button>
                 <div class="player-progress-bar">
-                    <div class="progress-track" id="track-">
-                        <div class="progress-fill" id="fill-"></div>
+                    <div class="progress-track" id="track-${s.sample_id}">
+                        <div class="progress-fill" id="fill-${s.sample_id}"></div>
                     </div>
                     <div class="time-labels">
-                        <span id="time-cur-">0.0s</span>
-                        <span id="time-dur-">s</span>
+                        <span id="time-cur-${s.sample_id}">0.0s</span>
+                        <span id="time-dur-${s.sample_id}">${s.duration.toFixed(2)}s</span>
                     </div>
                 </div>
             </div>
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="trim-label">앞 자르기</span>
                         <div class="trim-btn-group">
                             <button class="btn-trim-adj" data-target="start" data-delta="-0.1">-0.1s</button>
-                            <input type="text" class="trim-input trim-start-input" id="trim-start-" value="">
+                            <input type="text" class="trim-input trim-start-input" id="trim-start-${s.sample_id}" value="${trimStart.toFixed(2)}">
                             <button class="btn-trim-adj" data-target="start" data-delta="+0.1">+0.1s</button>
                         </div>
                     </div>
@@ -255,15 +255,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="trim-label">뒤 자르기</span>
                         <div class="trim-btn-group">
                             <button class="btn-trim-adj" data-target="end" data-delta="-0.1">-0.1s</button>
-                            <input type="text" class="trim-input trim-end-input" id="trim-end-" value="">
+                            <input type="text" class="trim-input trim-end-input" id="trim-end-${s.sample_id}" value="${trimEnd.toFixed(2)}">
                             <button class="btn-trim-adj" data-target="end" data-delta="+0.1">+0.1s</button>
                         </div>
                     </div>
 
                     <div class="trim-actions">
-                        <button class="btn-trim-preview" id="btn-preview-" title="자른 구간만 미리듣기">🎧 구간 미리듣기</button>
-                        <button class="btn-trim-apply" id="btn-apply-trim-" title="오디오 파일 0.1초 단위 즉시 손실없이 컷팅">✂️ 자르기 적용</button>
-                        <button class="btn-restore" id="btn-restore-" title="원본 백업으로 되돌리기">↺ 원본복구</button>
+                        <button class="btn-trim-preview" id="btn-preview-${s.sample_id}" title="자른 구간만 미리듣기">🎧 구간 미리듣기</button>
+                        <button class="btn-trim-apply" id="btn-apply-trim-${s.sample_id}" title="오디오 파일 0.1초 단위 즉시 손실없이 컷팅">✂️ 자르기 적용</button>
+                        <button class="btn-restore" id="btn-restore-${s.sample_id}" title="원본 백업으로 되돌리기">↺ 원본복구</button>
                     </div>
                 </div>
             </div>
@@ -272,20 +272,20 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="card-transcript">
                 <div class="transcript-header">
                     <span class="section-label">자막 / 캡션 텍스트 (BERT 프롬프트 매칭)</span>
-                    <button class="btn-whisper" id="btn-whisper-">
+                    <button class="btn-whisper" id="btn-whisper-${s.sample_id}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
                         Whisper 재전사
                     </button>
                 </div>
-                <textarea class="transcript-textarea" placeholder="오디오와 100% 일치하는 한국어 자막을 입력하세요"></textarea>
+                <textarea class="transcript-textarea" placeholder="오디오와 100% 일치하는 한국어 자막을 입력하세요">${s.transcript || ''}</textarea>
             </div>
 
             <!-- Agent Instruction Notes -->
             <div class="card-notes">
                 <span class="section-label">📝 AI 에이전트 지시사항 / 메모</span>
-                <input type="text" class="notes-input" placeholder="에이전트에게 남길 코멘트 (예: 끝부분 숨소리 제거, 화난 억양)" value="">
+                <input type="text" class="notes-input" placeholder="에이전트에게 남길 코멘트 (예: 끝부분 숨소리 제거, 화난 억양)" value="${s.agent_notes || ''}">
             </div>
-        ;
+        `;
 
         // Bind Card Event Handlers
         bindCardEvents(card, s);
@@ -294,14 +294,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function bindCardEvents(card, s) {
         const chk = card.querySelector('.chk-include');
-        const playBtn = card.querySelector(#btn-play-);
-        const track = card.querySelector(#track-);
-        const previewBtn = card.querySelector(#btn-preview-);
-        const applyTrimBtn = card.querySelector(#btn-apply-trim-);
-        const restoreBtn = card.querySelector(#btn-restore-);
-        const whisperBtn = card.querySelector(#btn-whisper-);
-        const tStartInput = card.querySelector(#trim-start-);
-        const tEndInput = card.querySelector(#trim-end-);
+        const playBtn = card.querySelector(`#btn-play-${s.sample_id}`);
+        const track = card.querySelector(`#track-${s.sample_id}`);
+        const previewBtn = card.querySelector(`#btn-preview-${s.sample_id}`);
+        const applyTrimBtn = card.querySelector(`#btn-apply-trim-${s.sample_id}`);
+        const restoreBtn = card.querySelector(`#btn-restore-${s.sample_id}`);
+        const whisperBtn = card.querySelector(`#btn-whisper-${s.sample_id}`);
+        const tStartInput = card.querySelector(`#trim-start-${s.sample_id}`);
+        const tEndInput = card.querySelector(`#trim-end-${s.sample_id}`);
 
         // Inclusion Toggle
         chk.addEventListener('change', () => {
@@ -377,8 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tStartInput.value = '0.00';
                 tEndInput.value = res.new_duration.toFixed(2);
-                card.querySelector(#dur-label-).textContent = ${res.new_duration.toFixed(2)}s;
-                card.querySelector(#time-dur-).textContent = ${res.new_duration.toFixed(2)}s;
+                card.querySelector(`#dur-label-${s.sample_id}`).textContent = `${res.new_duration.toFixed(2)}s`;
+                card.querySelector(`#time-dur-${s.sample_id}`).textContent = `${res.new_duration.toFixed(2)}s`;
                 
                 // Bust audio cache
                 if (activeCardId === s.sample_id && activeAudio) {
@@ -386,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeAudio = null;
                 }
 
-                showToast([] 초로 손실없이 자르기 완료!, 'success');
+                showToast(`[${s.filename}] ${res.new_duration.toFixed(2)}초로 손실없이 자르기 완료!`, 'success');
                 updateStats();
             } catch (err) {
                 showToast(err.message, 'error');
@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Restore Original Backup
         restoreBtn.addEventListener('click', async () => {
-            if (!confirm([] 원본 파일로 복구하시겠습니까?)) return;
+            if (!confirm(`[${s.filename}] 원본 파일로 복구하시겠습니까?`)) return;
             try {
                 const resp = await fetch('/api/curator/restore_original', {
                     method: 'POST',
@@ -413,9 +413,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tStartInput.value = '0.00';
                 tEndInput.value = res.duration.toFixed(2);
-                card.querySelector(#dur-label-).textContent = ${res.duration.toFixed(2)}s;
-                card.querySelector(#time-dur-).textContent = ${res.duration.toFixed(2)}s;
-                showToast([] 원본 복구 완료! (초), 'success');
+                card.querySelector(`#dur-label-${s.sample_id}`).textContent = `${res.duration.toFixed(2)}s`;
+                card.querySelector(`#time-dur-${s.sample_id}`).textContent = `${res.duration.toFixed(2)}s`;
+                showToast(`[${s.filename}] 원본 복구 완료! (${res.duration.toFixed(2)}초)`, 'success');
                 updateStats();
             } catch (err) {
                 showToast(err.message, 'error');
@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.transcript) {
                     s.transcript = res.transcript;
                     card.querySelector('.transcript-textarea').value = res.transcript;
-                    showToast([] Whisper 전사 완료!, 'success');
+                    showToast(`[${s.filename}] Whisper 전사 완료!`, 'success');
                 } else {
                     showToast('전사 결과가 비어 있습니다.', 'info');
                 }
@@ -445,10 +445,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast(err.message, 'error');
             } finally {
                 whisperBtn.disabled = false;
-                whisperBtn.innerHTML = 
+                whisperBtn.innerHTML = `
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
                     Whisper 재전사
-                ;
+                `;
             }
         });
     }
@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Audio Playback Engine ---
 
     function togglePlayAudio(s, isSlice = false) {
-        const playBtn = document.getElementById(tn-play-);
+        const playBtn = document.getElementById(`btn-play-${s.sample_id}`);
 
         if (activeAudio && activeCardId === s.sample_id) {
             if (activeAudio.paused) {
@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Create new audio instance
-        const audioUrl = /api/curator/audio/?t=;
+        const audioUrl = `/api/curator/audio/${encodeURIComponent(s.filename)}?t=${Date.now()}`;
         activeAudio = new Audio(audioUrl);
         activeCardId = s.sample_id;
         isTrimPreviewing = false;
@@ -490,13 +490,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const dur = activeAudio.duration || s.duration;
 
             // Update card progress
-            const fill = document.getElementById(ill-);
-            const timeCur = document.getElementById(	ime-cur-);
-            if (fill) fill.style.width = ${(cur / dur) * 100}%;
-            if (timeCur) timeCur.textContent = ${cur.toFixed(1)}s;
+            const fill = document.getElementById(`fill-${s.sample_id}`);
+            const timeCur = document.getElementById(`time-cur-${s.sample_id}`);
+            if (fill) fill.style.width = `${(cur / dur) * 100}%`;
+            if (timeCur) timeCur.textContent = `${cur.toFixed(1)}s`;
 
             // Update global player
-            if (playerTime) playerTime.textContent = ${cur.toFixed(1)}s / s;
+            if (playerTime) playerTime.textContent = `${cur.toFixed(1)}s / ${dur.toFixed(1)}s`;
             if (playerSeek) playerSeek.value = (cur / dur) * 100;
 
             // If slice previewing, auto pause at end
@@ -526,9 +526,9 @@ document.addEventListener('DOMContentLoaded', () => {
             isTrimPreviewing = true;
             trimPreviewEnd = endSec;
             activeAudio.play();
-            const playBtn = document.getElementById(tn-play-);
+            const playBtn = document.getElementById(`btn-play-${s.sample_id}`);
             updatePlayBtnIcon(playBtn, true);
-            showToast(구간 미리듣기: s ~ s, 'info');
+            showToast(`구간 미리듣기: ${startSec.toFixed(2)}s ~ ${endSec.toFixed(2)}s`, 'info');
         }
     }
 
@@ -546,9 +546,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetCardPlayState(cardId) {
         if (!cardId) return;
-        const playBtn = document.getElementById(tn-play-);
-        const fill = document.getElementById(ill-);
-        const timeCur = document.getElementById(	ime-cur-);
+        const playBtn = document.getElementById(`btn-play-${cardId}`);
+        const fill = document.getElementById(`fill-${cardId}`);
+        const timeCur = document.getElementById(`time-cur-${cardId}`);
         updatePlayBtnIcon(playBtn, false);
         if (fill) fill.style.width = '0%';
         if (timeCur) timeCur.textContent = '0.0s';
@@ -564,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeAudio) {
             if (activeAudio.paused) activeAudio.play();
             else activeAudio.pause();
-            const playBtn = document.getElementById(tn-play-);
+            const playBtn = document.getElementById(`btn-play-${activeCardId}`);
             updatePlayBtnIcon(playBtn, !activeAudio.paused);
         }
     });
@@ -597,13 +597,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function showToast(message, type = 'info') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
-        toast.className = 	oast ;
+        toast.className = `toast ${type}`;
         
         let icon = 'ℹ️';
         if (type === 'success') icon = '✅';
         else if (type === 'error') icon = '⚠️';
 
-        toast.innerHTML = <span></span> <span></span>;
+        toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
         container.appendChild(toast);
 
         setTimeout(() => {
