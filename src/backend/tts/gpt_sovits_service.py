@@ -16,7 +16,7 @@ _CURRENT_PERSONA = None
 _MODEL_CONFIGS = {
     "shibuki": {
         "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/shibuki_e12_s300.pth",
-        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/shibuki-e30.ckpt"
+        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/shibuki-e50.ckpt"
     },
     "mutsuki": {
         "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
