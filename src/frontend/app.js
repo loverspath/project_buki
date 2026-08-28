@@ -87,6 +87,8 @@ class BukiMobileClient {
 
     this.personaColors = {
       shibuki: '#ff9900',
+      shibuki_mesugaki: '#ff4d88',
+      shibuki_rimuru: '#38bdf8',
       mesugaki: '#ff4d88',
       mutsuki: '#ff2d55',
       sayaka: '#4da6ff',
@@ -95,6 +97,8 @@ class BukiMobileClient {
 
     this.personaFaces = {
       shibuki: { idle: '🦊', speaking: '🗣️', laugh: '😆', smug: '😏', pout: '😤' },
+      shibuki_mesugaki: { idle: '😈', speaking: '😜', laugh: '😆', smug: '😏', pout: '😤' },
+      shibuki_rimuru: { idle: '✨', speaking: '🗣️', laugh: '😆', smug: '😏', pout: '😤' },
       mesugaki: { idle: '😏', speaking: '😜', smirk: '😼', sigh: '😮‍💨', glare: '😒' },
       mutsuki: { idle: '💣', speaking: '😜', smirk: '😼', sigh: '😮‍💨', glare: '😈' },
       sayaka: { idle: '✨', speaking: '😊', laugh: '😆', think: '🤔' },
@@ -507,8 +511,16 @@ class BukiMobileClient {
 
         const isForced = (this.actingEmotion && this.actingEmotion !== 'auto');
         const emotionTag = (isForced ? '⚡ ' : '') + (emotionLabels[activeEmo] || '💬 대사');
-        const speakerNames = { mesugaki: '메스가키', mutsuki: '무츠키', sayaka: '사야카', ruri: '루리' };
-        const speaker = speakerNames[seg.persona_id] || '캐릭터';
+        const speakerNames = {
+          shibuki: '시부키(학습)',
+          shibuki_mesugaki: '시부키(메스가키)',
+          shibuki_rimuru: '시부키(리무루)',
+          mesugaki: '메스가키',
+          mutsuki: '무츠키',
+          sayaka: '사야카',
+          ruri: '루리'
+        };
+        const speaker = speakerNames[seg.persona_id] || '시부키';
 
         el.innerHTML = `
           <div class="dialogue-meta-row">
@@ -988,7 +1000,15 @@ class BukiMobileClient {
     document.documentElement.style.setProperty('--accent-color', color);
     this.avatarGlow.style.background = color;
     
-    const names = { mesugaki: '메스가키', mutsuki: '무츠키', sayaka: '사야카', ruri: '루리' };
+    const names = {
+      shibuki: '시부키 (전용 학습 모델)',
+      shibuki_mesugaki: '시부키 (메스가키 제로샷 - 하치쿠지)',
+      shibuki_rimuru: '시부키 (발랄소녀 제로샷 - 리무루)',
+      mesugaki: '메스가키',
+      mutsuki: '무츠키',
+      sayaka: '사야카',
+      ruri: '루리'
+    };
     this.badgeName.textContent = names[persona] || persona;
     this.avatarFace.textContent = (this.personaFaces[persona] || {}).idle || '😊';
   }

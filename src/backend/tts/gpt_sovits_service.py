@@ -18,6 +18,14 @@ _MODEL_CONFIGS = {
         "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/shibuki_e12_s636.pth",
         "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/shibuki-e20.ckpt"
     },
+    "shibuki_mesugaki": {
+        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/hachikuji_mesugaki.pth",
+        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/hachikuji_mesugaki.ckpt"
+    },
+    "shibuki_rimuru": {
+        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/rimuru_e20_s160.pth",
+        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/rimuru-e15.ckpt"
+    },
     "mutsuki": {
         "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
         "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
@@ -25,10 +33,6 @@ _MODEL_CONFIGS = {
     "mesugaki": {
         "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/hachikuji_mesugaki.pth",
         "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/hachikuji_mesugaki.ckpt"
-    },
-    "rimuru": {
-        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/rimuru_e20_s160.pth",
-        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/rimuru-e15.ckpt"
     }
 }
 
@@ -109,9 +113,14 @@ async def synthesize_gpt_sovits_base64(
     # Normalize backslashes for Windows path compatibility
     ref_audio_path = ref_audio_path.replace("\\", "/")
 
-    # Normalize Korean language codes to all_ko for strict Korean phonemizer
-    eff_target_lang = "all_ko" if target_lang in ["ko", "all_ko", "korean", "KO", "KOR"] else target_lang
-    eff_prompt_lang = "all_ko" if prompt_lang in ["ko", "all_ko", "korean", "KO", "KOR"] else prompt_lang
+    # Normalize Korean language codes
+    target_key = persona_id if persona_id in _MODEL_CONFIGS else "shibuki"
+    if "atri" in target_key:
+        eff_target_lang = "ko"
+        eff_prompt_lang = "ko"
+    else:
+        eff_target_lang = "all_ko" if target_lang in ["ko", "all_ko", "korean", "KO", "KOR"] else target_lang
+        eff_prompt_lang = "all_ko" if prompt_lang in ["ko", "all_ko", "korean", "KO", "KOR"] else prompt_lang
 
     payload = {
         "text": clean_text,

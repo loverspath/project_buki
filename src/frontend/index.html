@@ -184,8 +184,10 @@
             <div class="script-opt-item">
               <label>🎭 낭독 캐릭터</label>
               <select id="scriptPersonaSelect" class="sheet-select">
-                <option value="shibuki" selected>🦊 텐코 시부키 (한국어 버튜버)</option>
-                <option value="mesugaki">😏 메스가키 (한국어 네이티브)</option>
+                <option value="shibuki" selected>🦊 텐코 시부키 (전용 파인튜닝)</option>
+                <option value="shibuki_mesugaki">😈 시부키 (메스가키 제로샷 - 하치쿠지)</option>
+                <option value="shibuki_rimuru">✨ 시부키 (발랄소녀 제로샷 - 리무루)</option>
+                <option value="mesugaki">😏 메스가키 (오리지널 한국어)</option>
                 <option value="mutsuki">💣 무츠키 (원작 일어 톤)</option>
                 <option value="sayaka">✨ 사야카 (발랄한 톤)</option>
                 <option value="ruri">🧐 루리 (이성적 분석 톤)</option>
@@ -257,15 +259,19 @@
         <!-- Persona Setting -->
         <div class="sheet-group">
           <label class="sheet-label">🎭 페르소나 선택</label>
-          <div class="segmented-grid" id="personaGrid" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr;">
-            <button class="segment-btn active" data-persona="shibuki">🦊 시부키</button>
+          <div class="segmented-grid" id="personaGrid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px;">
+            <button class="segment-btn active" data-persona="shibuki">🦊 시부키 (전용 학습)</button>
+            <button class="segment-btn" data-persona="shibuki_mesugaki">😈 시부키 (메스가키 톤)</button>
+            <button class="segment-btn" data-persona="shibuki_rimuru">✨ 시부키 (발랄소녀 톤)</button>
             <button class="segment-btn" data-persona="mesugaki">😏 메스가키</button>
             <button class="segment-btn" data-persona="mutsuki">💣 무츠키</button>
             <button class="segment-btn" data-persona="sayaka">✨ 사야카</button>
             <button class="segment-btn" data-persona="ruri">🧐 루리</button>
           </div>
           <select id="personaSelect" style="display:none;">
-            <option value="shibuki" selected>시부키</option>
+            <option value="shibuki" selected>시부키 (전용 학습 모델)</option>
+            <option value="shibuki_mesugaki">시부키 (메스가키 제로샷 - 하치쿠지)</option>
+            <option value="shibuki_rimuru">시부키 (발랄소녀 제로샷 - 리무루)</option>
             <option value="mesugaki">메스가키</option>
             <option value="mutsuki">무츠키</option>
             <option value="sayaka">사야카</option>
