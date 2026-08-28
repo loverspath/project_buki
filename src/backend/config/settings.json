@@ -30,7 +30,7 @@
     ]
   },
   "defaults": {
-    "persona": "shibuki",
+    "persona": "shibuki_base",
     "model": "gemini-3.6-flash",
     "tts_engine": "gpt_sovits",
     "acting_emotion": "auto"

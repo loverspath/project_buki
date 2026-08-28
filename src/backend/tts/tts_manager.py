@@ -78,10 +78,10 @@ def enrich_gpt_sovits_text(text: str, emotion: str) -> Tuple[str, float]:
     """
     Applies phoneme & punctuation styling for GPT-SoVITS autoregressive prosody:
     - Normalizes punctuation to prevent empty chunk token hallucination
-    - Inserts clean vocalizations and adjusts synthesis speed
+    - Adjusts speed factor according to emotion without injecting artificial text
     """
     clean = re.sub(r"^[\s.,~…·!?;:]+", "", text).strip()
-    clean = re.sub(r"[~]+$", ".", clean) # Replace trailing tildes with period to prevent Japanese long-vowel pitch drag
+    clean = re.sub(r"[~]+$", ".", clean) # Replace trailing tildes with period
     clean = re.sub(r"[.]{2,}", ".", clean) # Normalize ellipsis to prevent AR token stalling
     clean = re.sub(r"[,]{2,}", ",", clean)
     clean = re.sub(r"\s+", " ", clean).strip()
@@ -93,35 +93,23 @@ def enrich_gpt_sovits_text(text: str, emotion: str) -> Tuple[str, float]:
     speed = 1.0
 
     if emotion == "sensual":
-        speed = 0.98 # Natural relaxed cadence without unnatural formant stretching
-        if not any(b in styled_text for b in ["읏", "하아", "응"]):
-            styled_text = f"읏, {styled_text}"
+        speed = 0.98
     elif emotion == "panting":
-        speed = 1.06 # Rapid, breathless cadence
-        if not styled_text.startswith("하아"):
-            styled_text = f"하아, 하아, {styled_text}"
+        speed = 1.06
     elif emotion == "whisper":
-        speed = 0.98 # Soft, intimate, gentle cadence
+        speed = 0.98
     elif emotion == "flustered":
-        speed = 1.08 # Stuttering, agitated cadence
-        if not any(k in styled_text for k in ["앗", "바,"]):
-            styled_text = f"앗, {styled_text}!"
+        speed = 1.06
     elif emotion == "terrified":
-        speed = 1.15 # High pitch, shivering, panicked gasp
-        if not any(k in styled_text for k in ["히익", "으악", "꺅"]):
-            styled_text = f"히익, {styled_text}!"
+        speed = 1.12
     elif emotion == "resigned":
-        speed = 0.94 # Calm, low pitch, deep depressed sigh without dragging
-        if not styled_text.startswith("하아"):
-            styled_text = f"하아, {styled_text}"
+        speed = 0.96
     elif emotion == "crying":
-        speed = 0.98 # Weeping, sobbing cadence
-        if not any(k in styled_text for k in ["흑", "훌쩍"]):
-            styled_text = f"흑... {styled_text}"
+        speed = 0.98
     elif emotion == "angry":
-        speed = 1.12 # Fast, forceful, loud
+        speed = 1.10
     elif emotion in ["smug", "tease"]:
-        speed = 1.02 # Crisp, sassy, relaxed
+        speed = 1.02
 
     return styled_text, speed
 
