@@ -72,6 +72,9 @@ def infer_emotion_from_context(combined_context: str) -> Optional[str]:
         "화", "버럭", "소리치", "짜증", "인상", "노려보", "째려", "가만 안"
     ]):
         return "angry"
+    # Question / Inquiring
+    elif "?" in ctx or any(k in ctx for k in ["궁금", "물어", "질문", "진짜?", "정말?"]):
+        return "question"
     return None
 
 def enrich_gpt_sovits_text(text: str, emotion: str) -> Tuple[str, float]:
