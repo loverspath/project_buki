@@ -50,10 +50,6 @@
       "name": "🎭 Chatterbox (0.5B 감정/태그 제어)"
     },
     {
-      "id": "index_tts_2",
-      "name": "🧪 IndexTTS-2 (실험용 제로샷)"
-    },
-    {
       "id": "edge_tts",
       "name": "🔊 Edge-TTS (초고속 기본 음성)"
     }
