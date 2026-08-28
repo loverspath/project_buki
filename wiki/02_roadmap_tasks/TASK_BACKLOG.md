@@ -22,4 +22,5 @@
 | **TSK-015** | Audio | Tenko Shibuki & VTuber 방송 아카이브 제로샷 보이스 추출 5단계 자동화 파이프라인 | Audio | ✅ 완료 | P0 |
 | **TSK-016** | Audio | IndexTTS-2 (한국어 지원, 8D 감정 벡터, 정밀 시간/길이 제어 제로샷) 엔진 통합 | Backend | ✅ 완료 | P0 |
 | **TSK-017** | Audio | Tenko Shibuki 전용 GPT-SoVITS 5단계 파인튜닝 완주 및 동적 가중치 스위칭 엔진 구축 | Audio | ✅ 완료 | P0 |
+| **TSK-018** | Audio | 시부키 음성 데이터셋 노이즈/도네이션 오염 10개 샘플 제외 및 청정 음원 재추출/재학습 | Audio | ⏳ 대기 (다음 작업) | P0 |
 | **TSK-008** | Avatar | Three.js 3D VRM 웹 렌더러 및 립싱크 모핑 탑재 | Frontend | ⏳ 대기 (Phase 3) | P1 |

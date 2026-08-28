@@ -15,8 +15,8 @@ CACHE_TTL = 30.0 # Cache status for 30 seconds to prevent healthcheck collisions
 _CURRENT_PERSONA = None
 _MODEL_CONFIGS = {
     "shibuki": {
-        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/shibuki_e8_s104.pth",
-        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/shibuki-e15.ckpt"
+        "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/SoVITS_weights_v2/shibuki_e12_s300.pth",
+        "gpt": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_weights_v2/shibuki-e30.ckpt"
     },
     "mutsuki": {
         "sovits": r"C:/Users/rerun/opendcmart/tools/GPT-SoVITS/GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
@@ -111,9 +111,9 @@ async def synthesize_gpt_sovits_base64(
         "ref_audio_path": ref_audio_path,
         "prompt_text": prompt_text,
         "prompt_lang": prompt_lang,
-        "top_k": 5,
-        "top_p": 0.85,
-        "temperature": 0.85,
+        "top_k": 10,
+        "top_p": 0.80,
+        "temperature": 0.65,
         "speed_factor": speed,
         "text_split_method": "cut5",
         "batch_size": 1,

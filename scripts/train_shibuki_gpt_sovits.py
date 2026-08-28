@@ -163,8 +163,8 @@ def main():
     os.makedirs(logs_s2, exist_ok=True)
     os.makedirs(logs_s1, exist_ok=True)
 
-    s2_data["train"]["batch_size"] = 8
-    s2_data["train"]["epochs"] = 8
+    s2_data["train"]["batch_size"] = 4
+    s2_data["train"]["epochs"] = 12
     s2_data["train"]["text_low_lr_rate"] = 0.4
     s2_data["train"]["pretrained_s2G"] = str(GPT_SOVITS_DIR / "GPT_SoVITS" / "pretrained_models" / "gsv-v2final-pretrained" / "s2G2333k.pth")
     s2_data["train"]["pretrained_s2D"] = str(GPT_SOVITS_DIR / "GPT_SoVITS" / "pretrained_models" / "gsv-v2final-pretrained" / "s2D2333k.pth")
@@ -185,7 +185,7 @@ def main():
     with open(tmp_s2_json, "w", encoding="utf-8") as f:
         json.dump(s2_data, f, indent=2)
 
-    ret = run_step(f'"{PYTHON_EXEC}" -s GPT_SoVITS/s2_train.py --config "{tmp_s2_json}"', None, "Stage 2A: SoVITS Decoder Acoustic Fine-Tuning (8 Epochs)")
+    ret = run_step(f'"{PYTHON_EXEC}" -s GPT_SoVITS/s2_train.py --config "{tmp_s2_json}"', None, "Stage 2A: SoVITS Decoder Acoustic Fine-Tuning (12 Epochs)")
     if ret != 0: return
 
     # ----------------------------------------------------
@@ -198,10 +198,10 @@ def main():
     gpt_weights_dir = GPT_SOVITS_DIR / "GPT_weights_v2"
     os.makedirs(gpt_weights_dir, exist_ok=True)
 
-    s1_data["train"]["batch_size"] = 8
-    s1_data["train"]["epochs"] = 15
+    s1_data["train"]["batch_size"] = 4
+    s1_data["train"]["epochs"] = 50
     s1_data["pretrained_s1"] = str(GPT_SOVITS_DIR / "GPT_SoVITS" / "pretrained_models" / "gsv-v2final-pretrained" / "s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt")
-    s1_data["train"]["save_every_n_epoch"] = 5
+    s1_data["train"]["save_every_n_epoch"] = 10
     s1_data["train"]["if_save_every_weights"] = True
     s1_data["train"]["if_save_latest"] = True
     s1_data["train"]["if_dpo"] = False
@@ -219,7 +219,7 @@ def main():
         "_CUDA_VISIBLE_DEVICES": "0",
         "hz": "25hz"
     }
-    ret = run_step(f'"{PYTHON_EXEC}" -s GPT_SoVITS/s1_train.py --config_file "{tmp_s1_yaml}"', env_s1, "Stage 2B: GPT Autoregressive Prosody Fine-Tuning (15 Epochs)")
+    ret = run_step(f'"{PYTHON_EXEC}" -s GPT_SoVITS/s1_train.py --config_file "{tmp_s1_yaml}"', env_s1, "Stage 2B: GPT Autoregressive Prosody Deep Fine-Tuning (50 Epochs)")
     if ret != 0: return
 
     print("\n" + "=" * 65)
