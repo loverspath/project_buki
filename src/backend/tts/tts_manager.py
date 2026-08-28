@@ -191,8 +191,8 @@ async def synthesize_smart_speech(
         print(f"[TTS Manager] Chatterbox synthesis failed or offline.")
         return None, "chatterbox_failed"
 
-    # 3. GPT-SoVITS Execution (Priority & Strict mode)
-    if preferred_engine in ["gpt_sovits", "auto"]:
+    # 3. GPT-SoVITS Execution (Priority & Strict mode / IndexTTS fallback)
+    if preferred_engine in ["gpt_sovits", "auto", "index_tts_2", "index_tts"]:
         ref_wav = voice_sample_cfg.get("default_ref_wav")
         prompt_text = voice_sample_cfg.get("default_prompt_text", "")
         prompt_lang = voice_sample_cfg.get("prompt_lang", "ko")

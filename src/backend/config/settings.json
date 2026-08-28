@@ -33,25 +33,25 @@
   "defaults": {
     "persona": "shibuki",
     "model": "gemini-3.6-flash",
-    "tts_engine": "index_tts_2",
+    "tts_engine": "gpt_sovits",
     "acting_emotion": "auto"
   },
   "available_tts_engines": [
     {
-      "id": "index_tts_2",
-      "name": "⚡ IndexTTS-2 (제로샷 + 8D감정/길이제어 - 한국어)"
+      "id": "gpt_sovits",
+      "name": "🎙️ GPT-SoVITS v2 (시부키 파인튜닝 마스터 - 추천)"
     },
     {
-      "id": "gpt_sovits",
-      "name": "🎙️ GPT-SoVITS (3초 제로샷)"
+      "id": "auto",
+      "name": "⚡ 자동 최적 (SoVITS ➔ Chatterbox ➔ Edge)"
     },
     {
       "id": "chatterbox",
       "name": "🎭 Chatterbox (0.5B 감정/태그 제어)"
     },
     {
-      "id": "auto",
-      "name": "⚡ 자동 (IndexTTS ➔ SoVITS ➔ Edge)"
+      "id": "index_tts_2",
+      "name": "🧪 IndexTTS-2 (실험용 제로샷)"
     },
     {
       "id": "edge_tts",
