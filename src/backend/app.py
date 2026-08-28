@@ -25,6 +25,7 @@ from core.persona import PERSONAS
 from tts.tts_manager import synthesize_smart_speech
 from tts.gpt_sovits_service import is_gpt_sovits_alive, GPT_SOVITS_URL
 from tts.chatterbox_service import is_chatterbox_alive
+import curator_manager
 
 app = FastAPI(title="Project BUKI - Local & Cloud LLM + TTS Companion Engine")
 
@@ -83,6 +84,24 @@ class ScriptSegmentTTSRequest(BaseModel):
     nsfw_mode: Optional[bool] = False
     acting_emotion: Optional[str] = "auto"
     target_duration_sec: Optional[float] = None
+
+
+class CuratorTrimRequest(BaseModel):
+    filename: str
+    trim_start: float
+    trim_end: float
+
+
+class CuratorSaveRequest(BaseModel):
+    samples: List[Dict[str, Any]]
+
+
+class CuratorTranscribeRequest(BaseModel):
+    filename: str
+
+
+class CuratorRestoreRequest(BaseModel):
+    filename: str
 
 
 # --- HELPER FUNCTIONS ---
@@ -262,6 +281,117 @@ async def tts_script_segment(req: ScriptSegmentTTSRequest):
         "engine_used": engine_used,
         "inferred_emotion": override_emo or req.inferred_emotion
     }
+
+
+# --- VOICE SAMPLE CURATOR & DATASET STUDIO ENDPOINTS ---
+
+@app.get("/curator")
+async def curator_page():
+    curator_html = frontend_dir / "curator.html"
+    if curator_html.exists():
+        return FileResponse(str(curator_html))
+    return JSONResponse(status_code=404, content={"detail": "Curator UI not found"})
+
+
+@app.get("/api/curator/manifest")
+async def get_curator_manifest():
+    try:
+        manifest = curator_manager.load_manifest()
+        return manifest
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load curation manifest: {e}")
+
+
+@app.get("/api/curator/audio/{filename}")
+async def get_curator_audio(filename: str):
+    target = curator_manager.CLIPS_DIR / filename
+    if not target.exists():
+        target = curator_manager.LEGACY_SHIBUKI_DIR / filename
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    return FileResponse(str(target), media_type="audio/wav")
+
+
+@app.post("/api/curator/save")
+async def save_curator_manifest(req: CuratorSaveRequest):
+    try:
+        data = {"samples": req.samples}
+        curator_manager.save_manifest(data)
+        return {"status": "success", "message": f"Saved {len(req.samples)} samples & generated shibuki.list"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save manifest: {e}")
+
+
+@app.post("/api/curator/trim")
+async def trim_curator_sample(req: CuratorTrimRequest):
+    clip_path = curator_manager.CLIPS_DIR / req.filename
+    if not clip_path.exists():
+        raise HTTPException(status_code=404, detail=f"Clip {req.filename} not found")
+    try:
+        backup_path = curator_manager.BACKUP_DIR / req.filename
+        if not backup_path.exists():
+            shutil.copy2(clip_path, backup_path)
+            
+        new_dur = curator_manager.trim_wav_lossless(
+            clip_path,
+            start_sec=req.trim_start,
+            end_sec=req.trim_end
+        )
+        manifest = curator_manager.load_manifest()
+        for s in manifest.get("samples", []):
+            if s.get("filename") == req.filename:
+                s["duration"] = round(new_dur, 2)
+                s["trim_start"] = 0.0
+                s["trim_end"] = round(new_dur, 2)
+                break
+        curator_manager.save_manifest(manifest)
+        return {"status": "success", "filename": req.filename, "new_duration": round(new_dur, 2)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Trimming failed: {e}")
+
+
+@app.post("/api/curator/restore_original")
+async def restore_curator_sample(req: CuratorRestoreRequest):
+    backup_path = curator_manager.BACKUP_DIR / req.filename
+    target_path = curator_manager.CLIPS_DIR / req.filename
+    if not backup_path.exists():
+        raise HTTPException(status_code=404, detail="Original backup not found")
+    try:
+        shutil.copy2(backup_path, target_path)
+        new_dur = curator_manager.get_wav_duration(target_path)
+        manifest = curator_manager.load_manifest()
+        for s in manifest.get("samples", []):
+            if s.get("filename") == req.filename:
+                s["duration"] = round(new_dur, 2)
+                s["trim_start"] = 0.0
+                s["trim_end"] = round(new_dur, 2)
+                break
+        curator_manager.save_manifest(manifest)
+        return {"status": "success", "filename": req.filename, "duration": round(new_dur, 2)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Restore failed: {e}")
+
+
+@app.post("/api/curator/transcribe")
+async def transcribe_curator_sample(req: CuratorTranscribeRequest):
+    clip_path = curator_manager.CLIPS_DIR / req.filename
+    if not clip_path.exists():
+        raise HTTPException(status_code=404, detail=f"Clip {req.filename} not found")
+    try:
+        text = curator_manager.transcribe_clip_whisper(clip_path)
+        return {"status": "success", "filename": req.filename, "transcript": text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {e}")
+
+
+@app.post("/api/curator/sync_gdrive")
+async def sync_curator_gdrive():
+    try:
+        cmd = f'rclone copy "{curator_manager.SAMPLES_DIR}" "gdrive:buki_voice_samples/shibuki_dataset" -v'
+        subprocess.Popen(cmd, shell=True)
+        return {"status": "success", "message": "Google Drive sync started in background via rclone"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Sync trigger failed: {e}")
 
 
 @app.post("/api/chat/stream")
