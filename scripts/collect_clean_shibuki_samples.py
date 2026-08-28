@@ -19,17 +19,27 @@ TARGET_VIDEOS = [
     {
         "id": "msIPcAalaeI",
         "title": "휴가 다녀와서 잡담",
-        "intervals": [(300, 600), (900, 1200), (1800, 2100)]
+        "intervals": [(900, 1200), (1800, 2100), (2700, 3000), (3300, 3600), (4200, 4500)]
     },
     {
         "id": "jkzH7Jm-NSo",
         "title": "유메퍼센트 썰풀이 잡담",
-        "intervals": [(400, 700), (1200, 1500)]
+        "intervals": [(400, 700), (1200, 1500), (1800, 2100), (2400, 2700), (3000, 3300)]
     },
     {
         "id": "sl2ipsuzJAk",
         "title": "2기 ppt 발표회 잡담",
-        "intervals": [(600, 900), (1500, 1800)]
+        "intervals": [(600, 900), (1500, 1800), (2400, 2700), (3000, 3300), (3600, 3900)]
+    },
+    {
+        "id": "dKNSz5UtAEY",
+        "title": "8월 26일 최신 저챗 방송",
+        "intervals": [(300, 600), (1200, 1500), (2100, 2400), (2700, 3000), (3300, 3600)]
+    },
+    {
+        "id": "AxeGn6xzVZM",
+        "title": "8월 24일 소통 방송",
+        "intervals": [(600, 900), (1500, 1800), (2100, 2400), (2700, 3000), (3300, 3600)]
     }
 ]
 
@@ -39,6 +49,27 @@ def log(msg, symbol="🚀"):
 def run_cmd(cmd):
     p = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding="utf-8", errors="replace")
     return p.returncode, p.stdout, p.stderr
+
+def is_clean_transcript(text):
+    if len(text) < 4:
+        return False
+    # Must have Hangul
+    if not re.search(r"[가-힣]", text):
+        return False
+    # No Latin/English characters
+    if re.search(r"[a-zA-Z]", text):
+        return False
+    # No bad words or donation alerts
+    bad_keywords = ["MBC", "뉴스", "시청해 주셔서", "구독과 좋아요", "감사합니다", "구독 감사", "후원 감사", "투네이션", "트윕"]
+    if any(bad in text for bad in bad_keywords):
+        return False
+    # Check for excessive repetition (Whisper hallucination)
+    words = text.split()
+    if len(words) >= 4:
+        for i in range(len(words) - 3):
+            if words[i] == words[i+1] == words[i+2] == words[i+3]:
+                return False
+    return True
 
 def download_and_extract_talk():
     os.makedirs(WAV_OUTPUT_DIR, exist_ok=True)
@@ -56,6 +87,21 @@ def download_and_extract_talk():
 
     current_idx = max_idx + 1
     log(f"Starting collection from sample index: {current_idx:03d}")
+
+    # Read current lines in list file
+    existing_lines = []
+    if LIST_FILE.exists():
+        with open(LIST_FILE, "r", encoding="utf-8") as f:
+            existing_lines = [l.strip() for l in f if l.strip()]
+    
+    current_total_samples = len(existing_lines)
+    target_total = 105
+    needed = max(0, target_total - current_total_samples)
+    log(f"Current curated samples: {current_total_samples}, Target: {target_total} (Need ~{needed} new clean samples)")
+
+    if needed <= 0:
+        log("Already reached target 100+ clean samples!", "🎉")
+        return
 
     import whisper
     log("Loading local Whisper model (base)...", "🧠")
@@ -99,7 +145,7 @@ def download_and_extract_talk():
             run_cmd(slice_cmd)
 
             clips = sorted(temp_dir.glob(f"clip_{video_id}_{start_sec}_*.wav"))
-            log(f"Generated {len(clips)} candidate voice clips.")
+            log(f"Generated {len(clips)} candidate voice clips for interval {start_sec}-{end_sec}s.")
 
             for clip in clips:
                 probe_cmd = f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{clip}"'
@@ -116,7 +162,8 @@ def download_and_extract_talk():
                 result = whisper_model.transcribe(str(clip), language="ko", fp16=False)
                 transcript = result.get("text", "").strip()
                 transcript = re.sub(r"[^\w\s.,?!~]", "", transcript).strip()
-                if len(transcript) < 4 or any(bad in transcript for bad in ["MBC", "뉴스", "시청해 주셔서", "구독과 좋아요", "감사합니다"]):
+                
+                if not is_clean_transcript(transcript):
                     clip.unlink(missing_ok=True)
                     continue
 
@@ -131,11 +178,11 @@ def download_and_extract_talk():
 
                 clip.unlink(missing_ok=True)
 
-                if len(new_samples) >= 30:
+                if current_total_samples + len(new_samples) >= target_total:
                     break
-            if len(new_samples) >= 30:
+            if current_total_samples + len(new_samples) >= target_total:
                 break
-        if len(new_samples) >= 30:
+        if current_total_samples + len(new_samples) >= target_total:
             break
 
     if new_samples:
@@ -143,7 +190,8 @@ def download_and_extract_talk():
         with open(LIST_FILE, "a", encoding="utf-8") as f:
             for line in new_samples:
                 f.write(line + "\n")
-        log(f"Successfully expanded shibuki.list! Total new samples: {len(new_samples)}", "🎉")
+        total_now = current_total_samples + len(new_samples)
+        log(f"Successfully expanded shibuki.list! Total clean samples now: {total_now}", "🎉")
     else:
         log("No new valid samples found.", "⚠️")
 
