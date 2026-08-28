@@ -8,7 +8,6 @@ from pathlib import Path
 from tts.tts_service import synthesize_speech_base64
 from tts.gpt_sovits_service import synthesize_gpt_sovits_base64, is_gpt_sovits_alive
 from tts.chatterbox_service import synthesize_speech_chatterbox, is_chatterbox_alive
-from tts.index_tts_service import synthesize_index_tts_base64, is_index_tts_alive
 
 SAMPLES_REGISTRY_PATH = Path(__file__).parent.parent.parent / "assets" / "voice_samples" / "sample_registry.json"
 
@@ -137,10 +136,9 @@ async def synthesize_smart_speech(
 ) -> Tuple[Optional[str], str]:
     """
     Intelligent speech synthesis router:
-    - 'index_tts_2' / 'index_tts': IndexTTS-2 with 8D emotion vector, duration control, and zero-shot cloning.
     - 'gpt_sovits': GPT-SoVITS zero-shot synthesis with emotion banks & prosody enrichment.
     - 'chatterbox': 0.5B Chatterbox TTS with paralinguistic tag conversion ([laugh], [sigh], [whisper]).
-    - 'auto': IndexTTS-2 ➔ GPT-SoVITS ➔ Chatterbox ➔ Edge-TTS.
+    - 'auto': GPT-SoVITS ➔ Chatterbox ➔ Edge-TTS.
     - 'edge_tts': Directly uses Edge-TTS.
     """
     clean_text = text.strip()
@@ -153,31 +151,7 @@ async def synthesize_smart_speech(
     combined_context = f"{action_str} {clean_text.lower()}"
     target_emotion = override_emotion or infer_emotion_from_context(combined_context)
 
-    # 1. IndexTTS-2 Engine (When selected or in auto mode)
-    if preferred_engine in ["index_tts_2", "index_tts", "auto"]:
-        ref_wav = voice_sample_cfg.get("default_ref_wav")
-        prompt_text = voice_sample_cfg.get("default_prompt_text", "")
-        prompt_lang = voice_sample_cfg.get("prompt_lang", "ko")
-        target_lang = voice_sample_cfg.get("target_lang", "ko")
-
-        if ref_wav:
-            audio_b64 = await synthesize_index_tts_base64(
-                text=clean_text,
-                ref_audio_path=ref_wav,
-                prompt_text=prompt_text,
-                prompt_lang=prompt_lang,
-                target_lang=target_lang,
-                acting_emotion=target_emotion or "neutral",
-                target_duration_sec=target_duration_sec,
-                max_retries=1
-            )
-            if audio_b64:
-                return audio_b64, "index_tts_2"
-
-        if preferred_engine in ["index_tts_2", "index_tts"]:
-            print(f"[TTS Manager] IndexTTS-2 (Port 9884) is offline/unavailable. Gracefully falling back to GPT-SoVITS/Edge-TTS...")
-
-    # 2. Chatterbox Engine (When explicitly selected)
+    # 1. Chatterbox Engine (When explicitly selected)
     if preferred_engine == "chatterbox":
         audio_b64 = await synthesize_speech_chatterbox(
             text=clean_text,
@@ -191,8 +165,8 @@ async def synthesize_smart_speech(
         print(f"[TTS Manager] Chatterbox synthesis failed or offline.")
         return None, "chatterbox_failed"
 
-    # 3. GPT-SoVITS Execution (Priority & Strict mode / IndexTTS fallback)
-    if preferred_engine in ["gpt_sovits", "auto", "index_tts_2", "index_tts"]:
+    # 2. GPT-SoVITS Execution (Priority / Auto mode)
+    if preferred_engine in ["gpt_sovits", "auto"]:
         ref_wav = voice_sample_cfg.get("default_ref_wav")
         prompt_text = voice_sample_cfg.get("default_prompt_text", "")
         prompt_lang = voice_sample_cfg.get("prompt_lang", "ko")

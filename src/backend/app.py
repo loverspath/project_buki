@@ -25,7 +25,6 @@ from core.persona import PERSONAS
 from tts.tts_manager import synthesize_smart_speech
 from tts.gpt_sovits_service import is_gpt_sovits_alive, GPT_SOVITS_URL
 from tts.chatterbox_service import is_chatterbox_alive
-from tts.index_tts_service import is_index_tts_alive, INDEX_TTS_URL
 
 app = FastAPI(title="Project BUKI - Local & Cloud LLM + TTS Companion Engine")
 
@@ -80,7 +79,7 @@ class ScriptSegmentTTSRequest(BaseModel):
     persona_id: Optional[str] = "shibuki"
     inferred_emotion: Optional[str] = "default"
     context_narration: Optional[str] = ""
-    tts_engine: Optional[str] = "index_tts_2"
+    tts_engine: Optional[str] = "gpt_sovits"
     nsfw_mode: Optional[bool] = False
     acting_emotion: Optional[str] = "auto"
     target_duration_sec: Optional[float] = None
@@ -175,19 +174,18 @@ async def root():
 async def get_system_info():
     local_models = []
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=0.6) as client:
             res = await client.get(f"{config.ollama_base_url}/api/tags")
             if res.status_code == 200:
                 data = res.json()
                 local_models = [m.get("name") for m in data.get("models", [])]
-    except Exception as e:
-        print(f"[Ollama Tags Error] {e}")
+    except Exception:
+        pass
 
     categorized_models = config.get_categorized_models(local_models)
     flat_models = config.get_flat_models(local_models)
     gpt_sovits_status = await is_gpt_sovits_alive()
     chatterbox_status = await is_chatterbox_alive()
-    index_tts_status = await is_index_tts_alive()
 
     return {
         "personas": list(PERSONAS.values()),
@@ -199,8 +197,6 @@ async def get_system_info():
         "gpt_sovits_url": GPT_SOVITS_URL,
         "gpt_sovits_online": gpt_sovits_status,
         "chatterbox_online": chatterbox_status,
-        "index_tts_url": INDEX_TTS_URL,
-        "index_tts_online": index_tts_status,
         "available_tts_engines": config.available_tts_engines
     }
 

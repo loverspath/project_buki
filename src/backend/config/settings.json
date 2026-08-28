@@ -5,8 +5,7 @@
     "gemini_base_url": "https://generativelanguage.googleapis.com/v1beta",
     "openrouter_base_url": "https://openrouter.ai/api/v1",
     "gpt_sovits_base_url": "http://127.0.0.1:9880",
-    "chatterbox_base_url": "http://127.0.0.1:9882",
-    "index_tts_base_url": "http://127.0.0.1:9884"
+    "chatterbox_base_url": "http://127.0.0.1:9882"
   },
   "models": {
     "gemini_cloud": [
